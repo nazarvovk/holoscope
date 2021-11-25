@@ -1,62 +1,50 @@
-const IS_REGISTRATION = Symbol.for('IS_REGISTRATION')
-
-interface Registration<TValue, TDependencies extends AbstractValues = AbstractValues> {
-  resolve(scope: Scope<TDependencies>): TValue
-  [IS_REGISTRATION]: true
-}
-
-const isRegistration = <T>(value): value is Registration<T> => value[IS_REGISTRATION]
-
-class RawRegistration<T> implements Registration<T> {
-  value: T;
-
-  readonly [IS_REGISTRATION] = true
-
-  constructor(value: T) {
-    this.value = value
-  }
-
-  resolve() {
-    return this.value
-  }
-}
-
-export const asRaw = <T>(value: T): RawRegistration<T> => new RawRegistration(value)
-export const asValue = asRaw
-
-type AbstractValues = Record<string | symbol, unknown>
-
-type RegistrationsFromRecord<T extends AbstractValues> = {
-  [K in keyof T]: Registration<T[K]>
-}
+import type { AbstractValues, ResolverPairs } from './types'
+import { isResolver, asValue } from './resolver'
+import { ResolverOrValueRecord } from './types'
 
 // @ts-expect-error no idea how to type proxy values without ts errors
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Scope<TValues extends AbstractValues> extends TValues {}
 
+/**
+ * Scope that allows dependency injection.
+ *
+ * @param registrations Record of values that can either be a raw value or a resolver
+ * @example
+ * const scope = new Scope({
+ *    example: asFunction(() => true),
+ *    exampleRaw: 'test',
+ * })
+ * scope.example // true
+ * scope.exampleRaw // 'test'
+ */
 export class Scope<TValues extends AbstractValues> {
-  private registrations: RegistrationsFromRecord<TValues>
+  private resolvers: ResolverPairs<TValues>
 
-  constructor(registrations: RegistrationsFromRecord<TValues> | TValues) {
-    this.register(registrations)
+  constructor(resolverOrValuePairs: ResolverOrValueRecord<TValues>) {
+    this.register(resolverOrValuePairs)
 
     return new Proxy(this, {
       get: (scope, prop) => {
         if (scope[prop]) {
           return scope[prop]
         }
-        return scope.registrations[prop].resolve(scope)
+        return scope.resolvers[prop].resolve(scope)
+      },
+      set: (_, prop): never => {
+        throw new Error(`Error trying to set scope property "${prop.toString()}".`)
       },
     })
   }
 
   register<TNewValues extends AbstractValues>(
-    newRegistrations: TNewValues | RegistrationsFromRecord<TNewValues>,
+    newRegistrations: ResolverOrValueRecord<TNewValues>,
+    // This should both assert & return, but it's not yet possible w/ Typescript
   ): Scope<TValues & TNewValues> {
     for (const [key, value] of Object.entries(newRegistrations)) {
-      this.registrations = {
-        ...this.registrations,
-        [key]: isRegistration(value) ? value : asValue(value),
+      this.resolvers = {
+        ...this.resolvers,
+        [key]: isResolver(value) ? value : asValue(value),
       }
     }
 
