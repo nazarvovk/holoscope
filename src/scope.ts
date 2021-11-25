@@ -25,13 +25,16 @@ export class Scope<TValues extends AbstractValues> {
     this.register(resolverOrValuePairs)
 
     return new Proxy(this, {
-      get: (scope, prop) => {
+      get: (scope, prop, proxy) => {
         if (scope[prop]) {
           return scope[prop]
         }
-        return scope.resolvers[prop].resolve(scope)
+        return scope.resolvers[prop].resolve(proxy)
       },
-      set: (_, prop): never => {
+      set: (scope, prop, value) => {
+        if (scope[prop]) {
+          return (scope[prop] = value)
+        }
         throw new Error(`Error trying to set scope property "${prop.toString()}".`)
       },
     })
