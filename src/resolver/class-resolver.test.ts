@@ -10,7 +10,7 @@ describe(`${Scope.name}`, () => {
     }
   }
 
-  const scope = new Scope({
+  const scope: Scope<{ test: TestService; dep: number }> = new Scope({
     test: asClass(TestService),
     dep: 2,
   })
@@ -24,9 +24,9 @@ describe(`${Scope.name}`, () => {
   })
 
   it('returns different value after a dependency is changed', () => {
-    const updatedScope = scope.register({ dep: 4 })
+    scope.register({ dep: 4 })
 
-    expect(updatedScope.test.plusDep(2)).toStrictEqual(6)
+    expect(scope.test.plusDep(2)).toStrictEqual(6)
   })
 
   describe('cache', () => {

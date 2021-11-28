@@ -44,15 +44,13 @@ export class Scope<TValues extends AbstractValues> {
   register<TNewValues extends AbstractValues>(
     newRegistrations: ResolverOrValueRecord<TNewValues>,
     // This should both assert & return, but it's not yet possible w/ Typescript
-  ): Scope<TValues & TNewValues> {
+  ): asserts this is Scope<TValues & TNewValues> {
     for (const [key, value] of Object.entries(newRegistrations)) {
       this.resolvers = {
         ...this.resolvers,
         [key]: isResolver(value) ? value : asValue(value),
       }
     }
-
-    return this as Scope<TValues & TNewValues>
   }
 
   async dispose(): Promise<void> {

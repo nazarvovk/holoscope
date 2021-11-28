@@ -2,7 +2,7 @@ import { Scope } from '../scope'
 import { asFunction } from './function-resolver'
 
 describe(`${Scope.name}`, () => {
-  const scope = new Scope({
+  const scope: Scope<{ test: number; dep: number }> = new Scope({
     test: asFunction((container: Scope<{ dep: number }>) => {
       return 1 + container.dep
     }),
@@ -14,8 +14,8 @@ describe(`${Scope.name}`, () => {
   })
 
   it('returns different value after a dependency is changed', () => {
-    const updatedScope = scope.register({ dep: 4 })
-    expect(updatedScope.test).toStrictEqual(5)
+    scope.register({ dep: 4 })
+    expect(scope.test).toStrictEqual(5)
   })
 
   describe('cache', () => {

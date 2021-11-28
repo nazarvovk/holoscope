@@ -3,7 +3,7 @@ import { asFunction, asClass } from './resolver'
 
 describe(`${Scope.name}`, () => {
   const TEST_VALUE = 'TEST_VALUE'
-  const scope = new Scope({
+  const scope: Scope<{ test: string }> = new Scope({
     test: TEST_VALUE,
   })
 
@@ -34,5 +34,13 @@ describe(`${Scope.name}`, () => {
     expect(disposer1).toHaveBeenCalledTimes(1)
     expect(disposer2).toHaveBeenCalledTimes(1)
     expect(disposer3).not.toHaveBeenCalled()
+  })
+
+  describe('register', () => {
+    scope.register({ newValue: 'test' })
+
+    it('registers value', () => {
+      expect(scope.newValue).toStrictEqual('test')
+    })
   })
 })
