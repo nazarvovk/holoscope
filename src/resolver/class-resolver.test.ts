@@ -43,4 +43,52 @@ describe(`${Scope.name}`, () => {
       expect(ClassMock).toBeCalledTimes(1)
     })
   })
+
+  describe('disposer', () => {
+    it('calls disposer', async () => {
+      const fnMock = jest.fn().mockReturnValueOnce({ test: 1 })
+      const disposerMock = jest.fn()
+
+      const disposerScope = new Scope({
+        test: asClass(fnMock, { cached: true, disposer: disposerMock }),
+      })
+
+      disposerScope.test
+
+      await disposerScope.dispose()
+
+      expect(disposerMock).toHaveBeenCalledTimes(1)
+      expect(disposerMock).toHaveBeenCalledWith({ test: 1 })
+    })
+
+    it('does not call disposer if value was not resolved', async () => {
+      const fnMock = jest.fn()
+      const disposerMock = jest.fn()
+
+      const disposerScope = new Scope({
+        test: asClass(fnMock, { cached: true, disposer: disposerMock }),
+      })
+
+      await disposerScope.dispose()
+
+      expect(disposerMock).not.toHaveBeenCalled()
+    })
+
+    it('calls disposer with an uncached value', async () => {
+      const fnMock = jest.fn().mockReturnValue({ test: 1 })
+      const disposerMock = jest.fn()
+
+      const disposerScope = new Scope({
+        test: asClass(fnMock, { disposer: disposerMock }),
+      })
+
+      disposerScope.test
+
+      await disposerScope.dispose()
+
+      expect(fnMock).toHaveBeenCalledTimes(2)
+      expect(disposerMock).toHaveBeenCalledTimes(1)
+      expect(disposerMock).toHaveBeenCalledWith({ test: 1 })
+    })
+  })
 })

@@ -1,6 +1,7 @@
 import type { AbstractValues, ResolverPairs } from './types'
 import { isResolver, asValue } from './resolver'
 import { ResolverOrValueRecord } from './types'
+import { Resolver } from './resolver/resolver'
 
 // @ts-expect-error no idea how to type proxy values without ts errors
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -52,5 +53,13 @@ export class Scope<TValues extends AbstractValues> {
     }
 
     return this as Scope<TValues & TNewValues>
+  }
+
+  async dispose(): Promise<void> {
+    await Promise.all(
+      Object.values(this.resolvers).map((resolver: Resolver<unknown>) => {
+        return resolver.dispose?.(this)
+      }),
+    )
   }
 }
