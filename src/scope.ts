@@ -3,8 +3,23 @@ import { isResolver, asValue } from './resolver'
 import { ResolverOrValueRecord } from './types'
 import { Resolver } from './resolver/resolver'
 
+/**
+ * In theory, something like this should work:
+ *
+ * export interface Scope<
+ *   TValues extends AbstractValues,
+ *   TParentValues extends AbstractValues = AbstractValues,
+ * > {
+ *   new (
+ *     resolverOrValuePairs: ResolverOrValueRecord<TValues>,
+ *     parent?: Scope<TParentValues>,
+ *   ): TValues & TParentValues
+ * }
+ *
+ * In practice it doesn't, so there is a bit of magic with @ts-expect-error
+ */
+
 // @ts-expect-error no idea how to type proxy values without ts errors
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Scope<
   TValues extends AbstractValues,
   TParentValues extends AbstractValues = AbstractValues,
@@ -88,7 +103,7 @@ export class Scope<
    */
   createChildScope<TChildValues extends AbstractValues>(
     registrations: ResolverOrValueRecord<TChildValues>,
-  ): Scope<TChildValues, TValues> {
+  ): Scope<TChildValues, TValues & TParentValues> {
     const child = new Scope(registrations, this)
 
     this.children.push(child)
