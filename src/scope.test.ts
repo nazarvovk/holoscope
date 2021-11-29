@@ -49,12 +49,20 @@ describe(`${Scope.name}`, () => {
       childValue: asFunction(() => 'test'),
     })
 
+    const child2 = childScope.createChildScope({
+      secondChildTest: asFunction(() => 'childTest2'),
+    })
+
     it('resolves own value', () => {
       expect(childScope.childValue).toStrictEqual('test')
     })
 
     it('resolves parent value', () => {
       expect(childScope.test).toStrictEqual(TEST_VALUE)
+    })
+
+    it('resolves twice removed parent value', () => {
+      expect(child2.test).toStrictEqual(TEST_VALUE)
     })
 
     it('child value takes priority over parent', async () => {
