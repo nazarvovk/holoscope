@@ -43,4 +43,64 @@ describe(`${Scope.name}`, () => {
       expect(scope.newValue).toStrictEqual('test')
     })
   })
+
+  describe('child scope', () => {
+    const childScope = scope.createChildScope({
+      childValue: asFunction(() => 'test'),
+    })
+
+    it('resolves own value', () => {
+      expect(childScope.childValue).toStrictEqual('test')
+    })
+
+    it('resolves parent value', () => {
+      expect(childScope.test).toStrictEqual(TEST_VALUE)
+    })
+
+    it('child value takes priority over parent', async () => {
+      const parent = new Scope({
+        test: asFunction(() => 'test'),
+      })
+
+      const child = parent.createChildScope({
+        test: asFunction(() => 'childTest'),
+      })
+
+      expect(child.test).toStrictEqual('childTest')
+    })
+
+    it('disposes child scope from parent', async () => {
+      const parent = new Scope({
+        test: asFunction(() => 'test', { disposer: () => Promise.resolve() }),
+      })
+
+      const childTestDisposer = jest.fn().mockResolvedValueOnce(1)
+
+      parent.createChildScope({
+        childTest: asFunction(() => 'childTest', { disposer: childTestDisposer }),
+      })
+
+      await parent.dispose()
+
+      expect(childTestDisposer).toHaveBeenCalledTimes(1)
+      expect(childTestDisposer).toHaveBeenCalledWith('childTest')
+    })
+
+    it('disposes child scope without affecting parent', async () => {
+      const parentTestDisposer = jest.fn().mockResolvedValueOnce(1)
+      const parent = new Scope({
+        test: asFunction(() => 'test', { disposer: parentTestDisposer }),
+      })
+
+      const childTestDisposer = jest.fn().mockResolvedValueOnce(1)
+      const child = parent.createChildScope({
+        childTest: asFunction(() => 'childTest', { disposer: childTestDisposer }),
+      })
+
+      await child.dispose()
+
+      expect(childTestDisposer).toHaveBeenCalledTimes(1)
+      expect(parentTestDisposer).not.toHaveBeenCalled()
+    })
+  })
 })

@@ -5,7 +5,11 @@ import { Resolver } from './resolver/resolver'
 
 // @ts-expect-error no idea how to type proxy values without ts errors
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface Scope<TValues extends AbstractValues> extends TValues {}
+export interface Scope<
+  TValues extends AbstractValues,
+  TParentValues extends AbstractValues = AbstractValues,
+> extends TValues,
+    TParentValues {}
 
 /**
  * Scope that allows dependency injection.
@@ -19,10 +23,14 @@ export interface Scope<TValues extends AbstractValues> extends TValues {}
  * scope.example // true
  * scope.exampleRaw // 'test'
  */
-export class Scope<TValues extends AbstractValues> {
+export class Scope<
+  TValues extends AbstractValues = AbstractValues,
+  TParentValues extends AbstractValues = AbstractValues,
+> {
   private resolvers: ResolverPairs<TValues>
+  private children: Scope[] = []
 
-  constructor(resolverOrValuePairs: ResolverOrValueRecord<TValues>) {
+  constructor(resolverOrValuePairs: ResolverOrValueRecord<TValues>, parent?: Scope<TParentValues>) {
     this.register(resolverOrValuePairs)
 
     return new Proxy(this, {
@@ -30,7 +38,12 @@ export class Scope<TValues extends AbstractValues> {
         if (scope[prop]) {
           return scope[prop]
         }
-        return scope.resolvers[prop].resolve(proxy)
+
+        if (scope.resolvers[prop]) {
+          return scope.resolvers[prop].resolve(proxy)
+        }
+
+        return parent[prop]
       },
       set: (scope, prop, value) => {
         if (scope[prop]) {
@@ -53,11 +66,33 @@ export class Scope<TValues extends AbstractValues> {
     }
   }
 
+  /**
+   * Call all of the resolver disposers and clear resolver cache.
+   *
+   * If dispose is called on a parent scope, child scopes are disposed first.
+   */
   async dispose(): Promise<void> {
+    // call dispose on every child scope first
+    await Promise.all(this.children.map((child) => child.dispose()))
+
+    // call dispose on every resolver of this scope
     await Promise.all(
       Object.values(this.resolvers).map((resolver: Resolver<unknown>) => {
         return resolver.dispose?.(this)
       }),
     )
+  }
+
+  /**
+   * Create a child scope.
+   */
+  createChildScope<TChildValues extends AbstractValues>(
+    registrations: ResolverOrValueRecord<TChildValues>,
+  ): Scope<TChildValues, TValues> {
+    const child = new Scope(registrations, this)
+
+    this.children.push(child)
+
+    return child
   }
 }

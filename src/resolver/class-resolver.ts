@@ -29,15 +29,15 @@ class ClassResolver<T, TDependencies extends AbstractValues = AbstractValues>
   private cache: T | null = null
 
   constructor(
-    private cls: Class<T, TDependencies>,
+    private class_: Class<T, TDependencies>,
     private options: ClassResolverOptions<T> = {},
   ) {}
 
   resolve(scope: Scope<TDependencies>): T {
     if (this.options.cached) {
-      return this.cache ?? (this.cache = new this.cls(scope))
+      return this.cache ?? (this.cache = new this.class_(scope))
     }
-    return new this.cls(scope)
+    return new this.class_(scope)
   }
 
   public async dispose(scope: Scope<TDependencies>): Promise<void> {
@@ -48,7 +48,7 @@ class ClassResolver<T, TDependencies extends AbstractValues = AbstractValues>
         await disposer(this.cache)
       }
     } else {
-      const value = new this.cls(scope)
+      const value = new this.class_(scope)
       await disposer(value)
     }
 

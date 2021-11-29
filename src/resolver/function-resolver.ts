@@ -29,15 +29,15 @@ class FunctionResolver<T, TDependencies extends AbstractValues = AbstractValues>
   private cache: T | null = null
 
   constructor(
-    private func: Fn<T, TDependencies>,
+    private function_: Fn<T, TDependencies>,
     private options: FunctionResolverOptions<T> = {},
   ) {}
 
   public resolve(scope: Scope<TDependencies>): T {
     if (this.options.cached) {
-      return this.cache ?? (this.cache = this.func(scope))
+      return this.cache ?? (this.cache = this.function_(scope))
     }
-    return this.func(scope)
+    return this.function_(scope)
   }
 
   public async dispose(scope: Scope<TDependencies>): Promise<void> {
@@ -48,7 +48,7 @@ class FunctionResolver<T, TDependencies extends AbstractValues = AbstractValues>
         await disposer(this.cache)
       }
     } else {
-      const value = this.func(scope)
+      const value = this.function_(scope)
       await disposer(value)
     }
 

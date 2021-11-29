@@ -3,8 +3,8 @@ import { asFunction } from './function-resolver'
 
 describe(`${Scope.name}`, () => {
   const scope: Scope<{ test: number; dep: number }> = new Scope({
-    test: asFunction((container: Scope<{ dep: number }>) => {
-      return 1 + container.dep
+    test: asFunction((scope_: Scope<{ dep: number }>) => {
+      return 1 + scope_.dep
     }),
     dep: 2,
   })
