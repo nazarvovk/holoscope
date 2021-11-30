@@ -1,7 +1,7 @@
 import { Scope } from '../scope'
 import { asFunction } from './function-resolver'
 
-describe(`${Scope.name}`, () => {
+describe(`${asFunction.name}`, () => {
   const scope: Scope<{ test: number; dep: number }> = new Scope({
     test: asFunction((scope_: Scope<{ dep: number }>) => {
       return 1 + scope_.dep

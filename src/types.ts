@@ -7,5 +7,5 @@ export type ResolverPairs<T extends AbstractValues> = {
 }
 
 export type ResolverOrValueRecord<T extends AbstractValues> = {
-  [K in keyof T]: T[K] | Resolver<T[K]>
+  [K in keyof T]: T[K] | Resolver<T[K], T>
 }

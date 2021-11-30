@@ -43,13 +43,15 @@ class FunctionResolver<T, TDependencies extends AbstractValues = AbstractValues>
   public async dispose(scope: Scope<TDependencies>): Promise<void> {
     const { disposer, cached } = this.options
 
-    if (cached) {
-      if (this.cache) {
-        await disposer(this.cache)
+    if (disposer) {
+      if (cached) {
+        if (this.cache) {
+          await disposer(this.cache)
+        }
+      } else {
+        const value = this.function_(scope)
+        await disposer(value)
       }
-    } else {
-      const value = this.function_(scope)
-      await disposer(value)
     }
 
     this.cache = null
@@ -59,4 +61,4 @@ class FunctionResolver<T, TDependencies extends AbstractValues = AbstractValues>
 export const asFunction = <T, TDependencies extends AbstractValues = AbstractValues>(
   value: Fn<T, TDependencies>,
   options?: FunctionResolverOptions<T>,
-): FunctionResolver<T> => new FunctionResolver(value, options)
+): FunctionResolver<T, TDependencies> => new FunctionResolver(value, options)

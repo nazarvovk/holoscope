@@ -1,7 +1,7 @@
 import { Scope } from '../scope'
 import { asClass } from './class-resolver'
 
-describe(`${Scope.name}`, () => {
+describe(`${asClass.name}`, () => {
   class TestService {
     constructor(public scope: Scope<{ dep: number }>) {}
 

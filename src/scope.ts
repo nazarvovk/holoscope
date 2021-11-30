@@ -42,7 +42,7 @@ export class Scope<
   TValues extends AbstractValues = AbstractValues,
   TParentValues extends AbstractValues = AbstractValues,
 > {
-  private resolvers: ResolverPairs<TValues>
+  private resolvers!: ResolverPairs<TValues>
   private children: Scope[] = []
 
   constructor(resolverOrValuePairs: ResolverOrValueRecord<TValues>, parent?: Scope<TParentValues>) {
@@ -58,7 +58,11 @@ export class Scope<
           return scope.resolvers[prop].resolve(proxy)
         }
 
-        return parent[prop]
+        const inherited = parent?.[prop]
+        if (!inherited) {
+          throw new Error(`Resolver "${prop.toString()}" not found.`)
+        }
+        return inherited
       },
       set: (scope, prop, value) => {
         if (scope[prop]) {

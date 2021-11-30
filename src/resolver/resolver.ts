@@ -11,4 +11,5 @@ export interface Resolver<TValue, TDependencies extends AbstractValues = Abstrac
   [IS_RESOLVER]: true
 }
 
-export const isResolver = <T>(value: unknown): value is Resolver<T> => value[IS_RESOLVER]
+export const isResolver = <T>(value: unknown): value is Resolver<T> =>
+  !!(value as Resolver<unknown>)?.[IS_RESOLVER]
