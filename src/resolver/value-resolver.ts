@@ -1,4 +1,4 @@
-import { Resolver, IS_RESOLVER } from '../resolver'
+import { Resolver, IS_RESOLVER } from './resolver'
 
 class ValueResolver<T> implements Resolver<T> {
   readonly [IS_RESOLVER] = true

@@ -1,4 +1,4 @@
-import { Resolver, IS_RESOLVER } from '../resolver'
+import { Resolver, IS_RESOLVER } from './resolver'
 import type { Scope } from '../scope'
 import { AbstractValues } from '../types'
 
