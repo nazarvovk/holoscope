@@ -8,8 +8,9 @@
   ],
   "scripts": {
     "start": "node build/src/main.js",
+    "prepublishOnly": "npm run build",
     "clean": "rimraf coverage lib",
-    "build": "tsc -p tsconfig.release.json",
+    "build": "rimraf lib && tsc -p tsconfig.release.json",
     "build:watch": "tsc -w -p tsconfig.release.json",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "jest",
