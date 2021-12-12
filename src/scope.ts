@@ -1,7 +1,6 @@
-import type { AbstractValues, ResolverPairs } from './types'
-import { isResolver, asValue } from './resolver'
-import { ResolverOrValueRecord } from './types'
-import { Resolver } from './resolver/resolver'
+import type { AbstractValues, ResolverPairs, ResolverOrValueRecord } from './types'
+import { Resolver, isResolver, asValue } from './resolver'
+import { AssignmentError, ResolutionError } from './errors'
 
 /**
  * In theory, something like this should work:
@@ -18,6 +17,8 @@ import { Resolver } from './resolver/resolver'
  *
  * In practice it doesn't, so there is a bit of magic with @ts-expect-error
  */
+
+/** */
 
 // @ts-expect-error no idea how to type proxy values without ts errors
 export interface Scope<
@@ -42,7 +43,7 @@ export class Scope<
   TValues extends AbstractValues = AbstractValues,
   TParentValues extends AbstractValues = AbstractValues,
 > {
-  private resolvers!: ResolverPairs<TValues>
+  private resolvers = {} as ResolverPairs<TValues>
   private children: Scope[] = []
 
   constructor(resolverOrValuePairs: ResolverOrValueRecord<TValues>, parent?: Scope<TParentValues>) {
@@ -60,15 +61,12 @@ export class Scope<
 
         const inherited = parent?.[prop]
         if (!inherited) {
-          throw new Error(`Resolver "${prop.toString()}" not found.`)
+          throw new ResolutionError(prop)
         }
         return inherited
       },
-      set: (scope, prop, value) => {
-        if (scope[prop]) {
-          return (scope[prop] = value)
-        }
-        throw new Error(`Error trying to set scope property "${prop.toString()}".`)
+      set: (_, prop) => {
+        throw new AssignmentError(prop)
       },
     })
   }
@@ -77,12 +75,16 @@ export class Scope<
     newRegistrations: ResolverOrValueRecord<TNewValues>,
     // This should both assert & return, but it's not yet possible w/ Typescript
   ): asserts this is Scope<TValues & TNewValues> {
-    for (const [key, value] of Object.entries(newRegistrations)) {
-      this.resolvers = {
-        ...this.resolvers,
+    // Wrap values that are not resolvers in asValue
+    const newResolvers = Object.entries(newRegistrations).reduce(
+      (registrations, [key, value]) => ({
+        ...registrations,
         [key]: isResolver(value) ? value : asValue(value),
-      }
-    }
+      }),
+      {},
+    )
+
+    Object.assign(this.resolvers, newResolvers)
   }
 
   /**

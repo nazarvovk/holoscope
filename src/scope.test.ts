@@ -1,5 +1,6 @@
 import { Scope } from './scope'
 import { asFunction, asClass } from './resolver'
+import { AssignmentError } from './errors'
 
 describe(`${Scope.name}`, () => {
   const TEST_VALUE = 'TEST_VALUE'
@@ -13,6 +14,10 @@ describe(`${Scope.name}`, () => {
 
   it('scope has the registrations', () => {
     expect(scope.test).toStrictEqual(TEST_VALUE)
+  })
+
+  it('throws error if you try to assign a prop', () => {
+    expect(() => (scope.test = '2')).toThrowError(AssignmentError)
   })
 
   it('scope calls all disposers', async () => {
