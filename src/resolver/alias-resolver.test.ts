@@ -2,7 +2,7 @@ import { Scope } from '../scope'
 import { asFunction } from './function-resolver'
 import { aliasTo } from './alias-resolver'
 
-describe(`${asFunction.name}`, () => {
+describe(`${aliasTo.name}`, () => {
   const fn = jest.fn().mockReturnValue(1)
 
   const scope = new Scope({
