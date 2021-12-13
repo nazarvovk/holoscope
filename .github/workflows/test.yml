@@ -10,6 +10,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: volta-cli/action@v1
+      with:
+        node-version: 16.3.0 
     - run: npm ci --no-audit
     - run: npm run lint --if-present
     - run: npm test
