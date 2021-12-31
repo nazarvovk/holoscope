@@ -1,6 +1,6 @@
 import type { AbstractValues, ResolverPairs, ResolverOrValueRecord } from './types'
 import { Resolver, isResolver, asValue } from './resolver'
-import { AssignmentError, ResolutionError } from './errors'
+import { AssignmentError, ResolutionError, ReservedNameError } from './errors'
 
 /**
  * In theory, something like this should work:
@@ -73,16 +73,24 @@ export class Scope<
 
   register<TNewValues extends AbstractValues>(
     newRegistrations: ResolverOrValueRecord<TNewValues>,
-    // This should both assert & return, but it's not yet possible w/ Typescript
+    /**
+     * This should both assert & return, but it's not yet possible w/ Typescript,
+     * so chaining is not supported.
+     * @see https://github.com/microsoft/TypeScript/issues/40562
+     */
   ): asserts this is Scope<TValues & TNewValues> {
     // Wrap values that are not resolvers in asValue
-    const newResolvers = Object.entries(newRegistrations).reduce(
-      (registrations, [key, value]) => ({
+    const newResolvers = Object.entries(newRegistrations).reduce((registrations, [key, value]) => {
+      // Throw an error if registration name matches one of the built-in methods
+      if (Scope.prototype[key]) {
+        throw new ReservedNameError(key)
+      }
+
+      return {
         ...registrations,
         [key]: isResolver(value) ? value : asValue(value),
-      }),
-      {},
-    )
+      }
+    }, {})
 
     Object.assign(this.resolvers, newResolvers)
   }
