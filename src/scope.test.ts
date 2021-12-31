@@ -1,6 +1,6 @@
 import { Scope } from './scope'
 import { asFunction, asClass } from './resolver'
-import { AssignmentError } from './errors'
+import { AssignmentError, ReservedNameError } from './errors'
 
 describe(`${Scope.name}`, () => {
   const TEST_VALUE = 'TEST_VALUE'
@@ -46,6 +46,10 @@ describe(`${Scope.name}`, () => {
 
     it('registers value', () => {
       expect(scope.newValue).toStrictEqual('test')
+    })
+
+    it('throws error when trying to register with a reserved name', () => {
+      expect(() => scope.register({ register: 'test' })).toThrow(ReservedNameError)
     })
   })
 
