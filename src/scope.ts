@@ -1,7 +1,7 @@
 import type { AbstractValues, ResolverPairs, ResolverOrValueRecord } from './types'
 import { Resolver, isResolver, asValue } from './resolver'
 import { AssignmentError, ResolutionError, ReservedNameError } from './errors'
-
+import { Merge } from 'ts-essentials'
 /**
  * In theory, something like this should work:
  *
@@ -78,7 +78,7 @@ export class Scope<
      * so chaining is not supported.
      * @see https://github.com/microsoft/TypeScript/issues/40562
      */
-  ): asserts this is Scope<TValues & TNewValues> {
+  ): asserts this is Scope<Merge<TValues, TNewValues>, TParentValues> {
     // Wrap values that are not resolvers in asValue
     const newResolvers = Object.entries(newRegistrations).reduce((registrations, [key, value]) => {
       // Throw an error if registration name matches one of the built-in methods
@@ -117,7 +117,7 @@ export class Scope<
    */
   createChildScope<TChildValues extends AbstractValues>(
     registrations: ResolverOrValueRecord<TChildValues>,
-  ): Scope<TChildValues, TValues & TParentValues> {
+  ): Scope<TChildValues, Merge<TParentValues, TValues>> {
     const child = new Scope(registrations, this)
 
     this.children.push(child)

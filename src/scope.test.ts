@@ -48,6 +48,13 @@ describe(`${Scope.name}`, () => {
       expect(scope.newValue).toStrictEqual('test')
     })
 
+    it('overwrites a value', () => {
+      scope.register({ overwritten: 'test' })
+      scope.register({ overwritten: 'overwritten' })
+
+      expect(scope.overwritten).toStrictEqual('overwritten')
+    })
+
     it('throws error when trying to register with a reserved name', () => {
       expect(() => scope.register({ register: 'test' })).toThrow(ReservedNameError)
     })
