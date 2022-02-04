@@ -1,14 +1,23 @@
 import { Resolver, IS_RESOLVER } from './resolver'
 import type { Scope } from '../scope'
 import { AbstractValues } from '../types'
+import { Merge } from 'ts-essentials'
 
-type Fn<T, TDependencies extends AbstractValues> = (scope: Scope<TDependencies>) => T
-type FunctionResolverOptions<T> = {
+type Fn<TValue, TDependencies extends AbstractValues> = (scope: Scope<TDependencies>) => TValue
+type FunctionResolverOptions<T, TInjectedDependencies extends AbstractValues = AbstractValues> = {
   /**
    * If true, the function is called once
    * and all the subsequent resolutions return the cached value
    */
   cached?: boolean
+
+  /**
+   * Inject scope with values when resolving this dependency.
+   *
+   * Accepts an object, or a function that accepts scope
+   * as the only argument and returns an object
+   */
+  inject?: TInjectedDependencies | ((scope: Scope) => TInjectedDependencies)
 
   /**
    * Function that is called when the scope is disposed.
@@ -21,23 +30,40 @@ type FunctionResolverOptions<T> = {
   disposer?: (value: T) => void | Promise<void>
 }
 
-class FunctionResolver<T, TDependencies extends AbstractValues = AbstractValues>
-  implements Resolver<T, TDependencies>
+class FunctionResolver<
+  TValue,
+  TDependencies extends AbstractValues = AbstractValues,
+  TInjectedDependencies extends AbstractValues = AbstractValues,
+> implements Resolver<TValue, TDependencies>
 {
   readonly [IS_RESOLVER] = true
 
-  private cache: T | null = null
+  private cache: TValue | null = null
 
   constructor(
-    private function_: Fn<T, TDependencies>,
-    private options: FunctionResolverOptions<T> = {},
+    private function_: Fn<TValue, Merge<TDependencies, TInjectedDependencies>>,
+    private options: FunctionResolverOptions<TValue, TInjectedDependencies> = {},
   ) {}
 
-  public resolve(scope: Scope<TDependencies>): T {
+  private getDependencyProxy(scope: Scope<TDependencies>) {
+    const { inject } = this.options
+    const injected = typeof inject === 'function' ? inject(scope) : inject ?? Object.create(null)
+
+    return new Proxy(scope, {
+      get: (_, prop) => {
+        return injected[prop] ?? scope[prop]
+      },
+    }) as Scope<Merge<TDependencies, TInjectedDependencies>>
+  }
+
+  public resolve(scope: Scope<TDependencies>): TValue {
+    const dependencyProxy = this.getDependencyProxy(scope)
+
     if (this.options.cached) {
-      return this.cache ?? (this.cache = this.function_(scope))
+      return this.cache ?? (this.cache = this.function_(dependencyProxy))
     }
-    return this.function_(scope)
+
+    return this.function_(dependencyProxy)
   }
 
   public async dispose(scope: Scope<TDependencies>): Promise<void> {
@@ -49,7 +75,8 @@ class FunctionResolver<T, TDependencies extends AbstractValues = AbstractValues>
           await disposer(this.cache)
         }
       } else {
-        const value = this.function_(scope)
+        const dependencyProxy = this.getDependencyProxy(scope)
+        const value = this.function_(dependencyProxy)
         await disposer(value)
       }
     }
@@ -58,7 +85,12 @@ class FunctionResolver<T, TDependencies extends AbstractValues = AbstractValues>
   }
 }
 
-export const asFunction = <T, TDependencies extends AbstractValues = AbstractValues>(
-  value: Fn<T, TDependencies>,
-  options?: FunctionResolverOptions<T>,
-): FunctionResolver<T, TDependencies> => new FunctionResolver(value, options)
+export const asFunction = <
+  TValue,
+  TDependencies extends AbstractValues = AbstractValues,
+  TInjectedDependencies extends AbstractValues = AbstractValues,
+>(
+  value: Fn<TValue, Merge<TDependencies, TInjectedDependencies>>,
+  options?: FunctionResolverOptions<TValue, TInjectedDependencies>,
+): FunctionResolver<TValue, TDependencies, TInjectedDependencies> =>
+  new FunctionResolver(value, options)
