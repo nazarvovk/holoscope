@@ -91,4 +91,34 @@ describe(`${asClass.name}`, () => {
       expect(disposerMock).toHaveBeenCalledWith({ test: 1 })
     })
   })
+
+  describe('inject', () => {
+    type ClassScope = InjectTestScope & { injectedDependency: number }
+
+    class TestClass {
+      constructor(public scope: ClassScope) {}
+    }
+    type InjectTestScope = {
+      test: TestClass
+      testInjectFunction: TestClass
+    }
+
+    const injectScope: Scope<InjectTestScope> = new Scope({
+      test: asClass(TestClass, {
+        inject: {
+          injectedDependency: 4,
+        },
+      }),
+      testInjectFunction: asClass(TestClass, {
+        inject: () => ({
+          injectedDependency: 6,
+        }),
+      }),
+    })
+
+    it('injects dependency into the resolver', () => {
+      expect(injectScope.test.scope.injectedDependency).toStrictEqual(4)
+      expect(injectScope.testInjectFunction.scope.injectedDependency).toStrictEqual(6)
+    })
+  })
 })

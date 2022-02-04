@@ -80,4 +80,43 @@ describe(`${asFunction.name}`, () => {
       expect(disposerMock).toHaveBeenCalledWith({ test: 1 })
     })
   })
+
+  describe('inject', () => {
+    type InjectTestScope = {
+      scopeDependency: number
+      test: number
+      testInjectFunction: number
+    }
+
+    type FnScope = InjectTestScope & { injectedDependency: number }
+
+    const fn = (scope: FnScope) => scope.scopeDependency + scope.injectedDependency
+
+    const injectScope: Scope<InjectTestScope> = new Scope({
+      scopeDependency: 3,
+      test: asFunction(fn, {
+        inject: {
+          injectedDependency: 4,
+        },
+      }),
+      testInjectFunction: asFunction(fn, {
+        inject: () => ({
+          injectedDependency: 6,
+        }),
+      }),
+    })
+
+    it('injects dependency into the resolver', () => {
+      expect(injectScope.test).toStrictEqual(7)
+      expect(injectScope.testInjectFunction).toStrictEqual(9)
+    })
+
+    it('injected is not available to other dependencies', () => {
+      injectScope.register({
+        dep: asFunction((scope) => scope.injectedDependency),
+      })
+
+      expect(() => injectScope.dep).toThrowError('Resolver "injectedDependency" not found.')
+    })
+  })
 })
