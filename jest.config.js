@@ -19,6 +19,8 @@ module.exports = {
        * Ref: https://github.com/kulshekhar/ts-jest/issues/259#issuecomment-617748411
        */
       tsconfig: 'tsconfig.test.json',
+      // Disable type checking for tests
+      isolatedModules: true,
     },
   },
 };
