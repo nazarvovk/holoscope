@@ -1,33 +1,43 @@
+import { ResolutionError } from '../errors'
 import { Scope } from '../scope'
 import { asFunction } from './function-resolver'
 
 describe(`${asFunction.name}`, () => {
-  const scope: Scope<{ test: number; dep: number }> = new Scope({
-    test: asFunction((scope_: Scope<{ dep: number }>) => {
-      return 1 + scope_.dep
+  const scope = new Scope({
+    test: asFunction((container: { dep: number }) => {
+      return 1 + container.dep
     }),
     dep: 2,
   })
 
   it('returns value', () => {
-    expect(scope.test).toStrictEqual(3)
+    expect(scope.container.test).toStrictEqual(3)
   })
 
   it('returns different value after a dependency is changed', () => {
     scope.register({ dep: 4 })
-    expect(scope.test).toStrictEqual(5)
+    expect(scope.container.test).toStrictEqual(5)
   })
 
   describe('cache', () => {
     const fnMock = jest.fn().mockReturnValueOnce(1)
-    const cacheScope = new Scope({
-      test: asFunction(fnMock, { cached: true }),
-    })
+
+    class CacheScope extends Scope<{
+      test: number
+    }> {
+      constructor() {
+        super({
+          test: asFunction(fnMock, { cached: true }),
+        })
+      }
+    }
+
+    const cacheScope = new CacheScope()
 
     it('calls function only once', () => {
-      cacheScope.test
-      cacheScope.test
-      cacheScope.test
+      cacheScope.container.test
+      cacheScope.container.test
+      cacheScope.container.test
 
       expect(fnMock).toBeCalledTimes(1)
     })
@@ -42,7 +52,7 @@ describe(`${asFunction.name}`, () => {
         test: asFunction(fnMock, { cached: true, disposer: disposerMock }),
       })
 
-      disposerScope.test
+      disposerScope.container.test
 
       await disposerScope.dispose()
 
@@ -71,7 +81,7 @@ describe(`${asFunction.name}`, () => {
         test: asFunction(fnMock, { disposer: disposerMock }),
       })
 
-      disposerScope.test
+      disposerScope.container.test
 
       await disposerScope.dispose()
 
@@ -82,41 +92,47 @@ describe(`${asFunction.name}`, () => {
   })
 
   describe('inject', () => {
-    type InjectTestScope = {
+    type InjectScopeContainer = {
       scopeDependency: number
       test: number
-      testInjectFunction: number
+      invalidDependency: unknown
     }
 
-    type FnScope = InjectTestScope & { injectedDependency: number }
+    type FnContainer = {
+      scopeDependency: number
+      injectedDependency: number
+    }
 
-    const fn = (scope: FnScope) => scope.scopeDependency + scope.injectedDependency
+    const testFactory = (container: FnContainer) =>
+      container.scopeDependency + container.injectedDependency
 
-    const injectScope: Scope<InjectTestScope> = new Scope({
-      scopeDependency: 3,
-      test: asFunction(fn, {
-        inject: {
-          injectedDependency: 4,
-        },
-      }),
-      testInjectFunction: asFunction(fn, {
-        inject: () => ({
-          injectedDependency: 6,
-        }),
-      }),
+    class InjectScope extends Scope<InjectScopeContainer> {
+      constructor() {
+        super({
+          scopeDependency: 3,
+          test: asFunction(testFactory, {
+            inject: {
+              injectedDependency: 4,
+            },
+          }),
+          // tries to access a dependency, that is injected on the other resolver, but not present in InjectScope
+          invalidDependency: asFunction((container) => container.injectedDependency),
+        })
+      }
+    }
+
+    let injectScope: InjectScope
+
+    beforeEach(() => {
+      injectScope = new InjectScope()
     })
 
     it('injects dependency into the resolver', () => {
-      expect(injectScope.test).toStrictEqual(7)
-      expect(injectScope.testInjectFunction).toStrictEqual(9)
+      expect(injectScope.container.test).toStrictEqual(7)
     })
 
     it('injected is not available to other dependencies', () => {
-      injectScope.register({
-        dep: asFunction((scope) => scope.injectedDependency),
-      })
-
-      expect(() => injectScope.dep).toThrowError('Resolver "injectedDependency" not found.')
+      expect(() => injectScope.container.invalidDependency).toThrowError(ResolutionError)
     })
   })
 })

@@ -11,7 +11,7 @@ describe(`${aliasTo.name}`, () => {
   })
 
   it('returns aliased value', () => {
-    expect(scope.alias).toStrictEqual(1)
+    expect(scope.container.alias).toStrictEqual(1)
     expect(fn).toHaveBeenCalledTimes(1)
   })
 })

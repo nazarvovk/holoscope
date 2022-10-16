@@ -1,15 +1,15 @@
 import { Resolver, IS_RESOLVER } from './resolver'
-import { Scope } from '../scope'
+import { Container } from '../types'
 
 class AliasResolver<T = unknown> implements Resolver<T> {
   readonly [IS_RESOLVER] = true
 
-  constructor(private registrationName: string) {}
+  constructor(private registrationName: keyof Container) {}
 
-  resolve<TScope extends Scope>(scope: TScope): T {
-    return scope[this.registrationName] as T
+  resolve(container: Container): T {
+    return container[this.registrationName] as T
   }
 }
 
-export const aliasTo = <T = unknown>(registrationName: string): AliasResolver<T> =>
+export const aliasTo = <T = unknown>(registrationName: keyof Container): AliasResolver<T> =>
   new AliasResolver(registrationName)
