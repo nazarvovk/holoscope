@@ -1,4 +1,5 @@
 import { Resolver } from './resolver'
+import { Scope } from './scope'
 
 export type Container = Record<keyof any, unknown>
 
@@ -39,3 +40,5 @@ export type Injection<T> = {
 export type ExtendedInjection<TBase, TExtended extends TBase> = Injection<
   Partial<TBase> & Omit<TExtended, keyof TBase>
 > | void
+
+export type ContainerOf<T> = T extends Scope<infer TContainer> ? TContainer : never

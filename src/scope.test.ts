@@ -1,12 +1,12 @@
 import { Scope } from './scope'
 import { asFunction, asClass } from './resolver'
 import { AssignmentError } from './errors'
-import { Container, ExtendedInjection, Injection } from './types'
+import { ExtendedInjection, Injection } from './types'
 
 describe(`${Scope.name}`, () => {
   const TEST_VALUE = 'TEST_VALUE'
 
-  interface TestContainer extends Container {
+  interface TestContainer {
     test: string
   }
 

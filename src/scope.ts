@@ -1,4 +1,4 @@
-import type { Container, Injection } from './types'
+import type { Injection } from './types'
 import { isResolver } from './resolver'
 import { AssignmentError, ResolutionError } from './errors'
 
@@ -27,7 +27,7 @@ import { AssignmentError, ResolutionError } from './errors'
  * const example2 = exampleScope.container.example2 // 'value1value2'
  * ```
  */
-export class Scope<TContainer extends Container> {
+export class Scope<TContainer> {
   private registrations = {} as Injection<TContainer>
 
   constructor(registrations: Injection<TContainer>) {
