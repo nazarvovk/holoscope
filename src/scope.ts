@@ -1,4 +1,4 @@
-import type { Container, Injection } from './types'
+import type { Injection } from './types'
 import { isResolver } from './resolver'
 import { AssignmentError, ResolutionError } from './errors'
 
@@ -7,9 +7,27 @@ import { AssignmentError, ResolutionError } from './errors'
  *
  * @param registrations Record of values that can either be a raw value or a resolver
  * @example
- * TODO: add example
+ * ```typescript
+ * interface ExampleContainer {
+ *   example1: string
+ *   example2: string
+ * }
+ *
+ * class ExampleScope extends Scope<ExampleContainer> {
+ *   constructor() {
+ *     super({
+ *       example1: 'value1',
+ *       example2: asFunction((container: ExampleContainer) => container.example1 + 'value2'),
+ *     })
+ *   }
+ * }
+ *
+ * const exampleScope = new ExampleScope()
+ * const example1 = exampleScope.container.example1 // 'value1'
+ * const example2 = exampleScope.container.example2 // 'value1value2'
+ * ```
  */
-export class Scope<TContainer extends Container> {
+export class Scope<TContainer> {
   private registrations = {} as Injection<TContainer>
 
   constructor(registrations: Injection<TContainer>) {

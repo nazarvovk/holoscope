@@ -1,6 +1,6 @@
 import { Resolver } from './resolver'
+import { Scope } from './scope'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Container = Record<keyof any, unknown>
 
 export type ValueOrResolver<T> = T | Resolver<T>
@@ -40,3 +40,5 @@ export type Injection<T> = {
 export type ExtendedInjection<TBase, TExtended extends TBase> = Injection<
   Partial<TBase> & Omit<TExtended, keyof TBase>
 > | void
+
+export type ContainerOf<T> = T extends Scope<infer TContainer> ? TContainer : never

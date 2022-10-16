@@ -17,8 +17,7 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
     "lib": [
-      "es6",
-      "es7"
+      "es2022",
     ]
   },
   "include": [

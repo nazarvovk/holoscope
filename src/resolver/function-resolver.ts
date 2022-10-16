@@ -1,7 +1,6 @@
 import { Container } from '../types'
 import { Resolver, IS_RESOLVER } from './resolver'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ConstructorFunction<TValue> = (...args: any[]) => TValue
 
 type FunctionResolverOptions<TValue> = {
@@ -74,7 +73,7 @@ class FunctionResolver<TValue> implements Resolver<TValue> {
     return value
   }
 
-  public async dispose(container: Container): Promise<void> {
+  public async dispose(container: any): Promise<void> {
     const { disposer, cached } = this.options
 
     if (disposer) {
