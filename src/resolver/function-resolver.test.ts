@@ -96,6 +96,7 @@ describe(`${asFunction.name}`, () => {
       scopeDependency: number
       test: number
       invalidDependency: unknown
+      injectResolverTest: number
     }
 
     type FnContainer = {
@@ -103,20 +104,32 @@ describe(`${asFunction.name}`, () => {
       injectedDependency: number
     }
 
-    const testFactory = (container: FnContainer) =>
+    const addScopeDependencyToInjectedDependency = (container: FnContainer) =>
       container.scopeDependency + container.injectedDependency
 
     class InjectScope extends Scope<InjectScopeContainer> {
       constructor() {
         super({
           scopeDependency: 3,
-          test: asFunction(testFactory, {
+          test: asFunction(addScopeDependencyToInjectedDependency, {
             inject: {
               injectedDependency: 4,
             },
           }),
           // tries to access a dependency, that is injected on the other resolver, but not present in InjectScope
           invalidDependency: asFunction((container) => container.injectedDependency),
+
+          injectResolverTest: asFunction(addScopeDependencyToInjectedDependency, {
+            inject: {
+              injectedDependency: asFunction(
+                ({ scopeDependency, dep }) =>
+                  // sum of outer scope dependency and dependency injected at the same level
+                  // should be 5
+                  scopeDependency + dep,
+              ),
+              dep: 2,
+            },
+          }),
         })
       }
     }
@@ -133,6 +146,10 @@ describe(`${asFunction.name}`, () => {
 
     it('injected is not available to other dependencies', () => {
       expect(() => injectScope.container.invalidDependency).toThrowError(ResolutionError)
+    })
+
+    it('injected resolver is called with', () => {
+      expect(injectScope.container.injectResolverTest).toStrictEqual(8)
     })
   })
 })

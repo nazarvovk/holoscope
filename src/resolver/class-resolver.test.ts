@@ -1,5 +1,6 @@
 import { Scope } from '../scope'
 import { asClass } from './class-resolver'
+import { asFunction } from './function-resolver'
 
 describe(`${asClass.name}`, () => {
   class TestService {
@@ -106,9 +107,18 @@ describe(`${asClass.name}`, () => {
       }
     }
 
+    class InjectResolverTestClass {
+      value: number
+
+      constructor(public container: TestClassContainer & { dep: number }) {
+        this.value = container.scopeDependency + container.injectedDependency
+      }
+    }
+
     type InjectTestContainer = {
       test: TestClass
       scopeDependency: number
+      injectResolverTest: InjectResolverTestClass
     }
 
     class InjectScope extends Scope<InjectTestContainer> {
@@ -118,6 +128,17 @@ describe(`${asClass.name}`, () => {
           test: asClass(TestClass, {
             inject: {
               injectedDependency: 4,
+            },
+          }),
+          injectResolverTest: asClass(InjectResolverTestClass, {
+            inject: {
+              injectedDependency: asFunction(
+                ({ scopeDependency, dep }) =>
+                  // sum of outer scope dependency and dependency injected at the same level
+                  // should be 5
+                  scopeDependency + dep,
+              ),
+              dep: 2,
             },
           }),
         })
@@ -132,6 +153,10 @@ describe(`${asClass.name}`, () => {
 
     it('injects dependency into the resolver', () => {
       expect(injectScope.container.test.value).toStrictEqual(7)
+    })
+
+    it('injected resolver is called with', () => {
+      expect(injectScope.container.injectResolverTest.value).toStrictEqual(8)
     })
   })
 })

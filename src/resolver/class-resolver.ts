@@ -1,5 +1,5 @@
 import { Container } from '../types'
-import { Resolver, IS_RESOLVER } from './resolver'
+import { Resolver, IS_RESOLVER, isResolver } from './resolver'
 
 type Class<TValue> = new (...args: any[]) => TValue
 type ClassResolverOptions<T> = {
@@ -39,12 +39,17 @@ class ClassResolver<TValue> implements Resolver<TValue> {
     }
 
     return new Proxy(container, {
-      get: (originalContainer, dependencyName: keyof Container) => {
+      get: (originalContainer, dependencyName: keyof Container, proxy) => {
         // using Object.hasOwn so that if inject overwrites a dependency with undefined or null,
         // that injected value is returned
-        return Object.hasOwn(inject, dependencyName)
-          ? inject[dependencyName]
-          : originalContainer[dependencyName]
+        if (Object.hasOwn(inject, dependencyName)) {
+          const injectedDependency = inject[dependencyName]
+          if (isResolver(injectedDependency)) {
+            return injectedDependency.resolve(proxy)
+          }
+          return injectedDependency
+        }
+        return originalContainer[dependencyName]
       },
     })
   }
