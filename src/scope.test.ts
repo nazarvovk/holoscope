@@ -1,12 +1,12 @@
 import { Scope } from './scope'
 import { asFunction, asClass } from './resolver'
 import { AssignmentError } from './errors'
-import { ExtendedInjection, Injection } from './types'
+import { Container, ExtendedInjection, Injection } from './types'
 
 describe(`${Scope.name}`, () => {
   const TEST_VALUE = 'TEST_VALUE'
 
-  interface TestContainer {
+  interface TestContainer extends Container {
     test: string
   }
 
@@ -188,6 +188,39 @@ describe(`${Scope.name}`, () => {
 
       expect(childTestDisposer).toHaveBeenCalledTimes(1)
       expect(parentTestDisposer).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('protected registrations', () => {
+    // This is useful when there are registrations that
+    // depend on protectedValue, but at the same time protectedValue
+    // is not part of the container type (should not be accessible from the outside)
+
+    class ProtectedScope extends Scope<{ getterValue: string }> {
+      constructor() {
+        super({
+          getterValue: asFunction(
+            ({ protectedValue }: { protectedValue: string }) => protectedValue,
+          ),
+        })
+
+        this.registerProtected({
+          protectedValue: 'protectedValue',
+        })
+      }
+    }
+
+    const protectedScope = new ProtectedScope()
+
+    it('resolves protected value', () => {
+      expect(protectedScope.container.getterValue).toStrictEqual('protectedValue')
+    })
+
+    it('protected value is not available from outside', () => {
+      // @ts-expect-error shouldn't be available
+      expect(() => protectedScope.container.protectedValue).toThrowError(
+        'Resolver "protectedValue" not found.',
+      )
     })
   })
 })

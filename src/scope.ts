@@ -27,8 +27,10 @@ import { AssignmentError, ResolutionError } from './errors'
  * const example2 = exampleScope.container.example2 // 'value1value2'
  * ```
  */
-export class Scope<TContainer> {
+// eslint-disable-next-line @typescript-eslint/ban-types
+export class Scope<TContainer extends object> {
   private registrations = {} as Injection<TContainer>
+  private protectedRegistrations = {} as Injection<any>
 
   constructor(registrations: Injection<TContainer>) {
     this.register(registrations)
@@ -41,11 +43,13 @@ export class Scope<TContainer> {
   }
 
   /**
-   * TODO: Document
+   * Container that is passed when resolving dependencies from other dependencies
+   * Differs from container, prioritizing protected registrations
    */
-  public container = new Proxy(this.registrations, {
+  private resolutionContainerProxy = new Proxy(this.registrations, {
     get: (registrations, prop, proxy) => {
-      const registration = registrations[prop as keyof TContainer]
+      const registration =
+        this.protectedRegistrations[prop as any] ?? registrations[prop as keyof TContainer]
       if (registration) {
         if (isResolver(registration)) {
           return registration.resolve(proxy)
@@ -59,8 +63,32 @@ export class Scope<TContainer> {
     },
   }) as TContainer
 
-  register(newRegistrations: Partial<Injection<TContainer>>): Scope<TContainer> {
+  /**
+   * Public container proxy.
+   */
+  public container = new Proxy(this.registrations, {
+    get: (registrations, prop) => {
+      const registration = registrations[prop as keyof TContainer]
+      if (registration) {
+        if (isResolver(registration)) {
+          return registration.resolve(this.resolutionContainerProxy)
+        }
+        return registration
+      }
+      throw new ResolutionError(prop)
+    },
+    set: (_, prop) => {
+      throw new AssignmentError(prop)
+    },
+  }) as TContainer
+
+  public register(newRegistrations: Partial<Injection<TContainer>>): Scope<TContainer> {
     Object.assign(this.registrations, newRegistrations)
+    return this
+  }
+
+  public registerProtected(protectedInjection: Injection<unknown>): Scope<TContainer> {
+    Object.assign(this.protectedRegistrations, protectedInjection)
     return this
   }
 
