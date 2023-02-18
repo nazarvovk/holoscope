@@ -1,15 +1,14 @@
-import { Scope } from '../scope'
-import { AbstractValues } from '../types'
+import { Container } from '../types'
 
 export const IS_RESOLVER = Symbol.for('IS_RESOLVER')
 
-export interface Resolver<TValue, TDependencies extends AbstractValues = AbstractValues> {
-  resolve: (scope: Scope<TDependencies>) => TValue
+export interface Resolver<TValue> {
+  resolve: (container: Container) => TValue
 
-  dispose?: (scope: Scope<TDependencies>) => Promise<void>
+  dispose?: (container: unknown) => Promise<void>
 
   [IS_RESOLVER]: true
 }
 
-export const isResolver = <T>(value: unknown): value is Resolver<T> =>
+export const isResolver = (value: unknown): value is Resolver<unknown> =>
   !!(value as Resolver<unknown>)?.[IS_RESOLVER]

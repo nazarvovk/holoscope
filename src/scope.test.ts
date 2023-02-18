@@ -1,23 +1,39 @@
 import { Scope } from './scope'
 import { asFunction, asClass } from './resolver'
-import { AssignmentError, ReservedNameError } from './errors'
+import { AssignmentError } from './errors'
+import { ExtendedInjection, Injection } from './types'
 
 describe(`${Scope.name}`, () => {
   const TEST_VALUE = 'TEST_VALUE'
-  const scope: Scope<{ test: string }> = new Scope({
-    test: TEST_VALUE,
-  })
+
+  interface TestContainer {
+    test: string
+  }
+
+  class TestScope<TExtended extends TestContainer = TestContainer> extends Scope<TExtended> {
+    constructor(extended: ExtendedInjection<TestContainer, TExtended>) {
+      const registrations: Injection<TestContainer> = {
+        test: asFunction(() => TEST_VALUE),
+      }
+      super({
+        ...registrations,
+        ...extended,
+      } as Injection<TExtended>)
+    }
+  }
+
+  const scope = new TestScope()
 
   it('creates a scope instance', () => {
     expect(scope).toBeInstanceOf(Scope)
   })
 
   it('scope has the registrations', () => {
-    expect(scope.test).toStrictEqual(TEST_VALUE)
+    expect(scope.container.test).toStrictEqual(TEST_VALUE)
   })
 
   it('throws error if you try to assign a prop', () => {
-    expect(() => (scope.test = '2')).toThrowError(AssignmentError)
+    expect(() => (scope.container.test = '2')).toThrowError(AssignmentError)
   })
 
   it('scope calls all disposers', async () => {
@@ -25,16 +41,25 @@ describe(`${Scope.name}`, () => {
     const disposer2 = jest.fn()
     const disposer3 = jest.fn()
 
-    class Test2 {}
+    class TestClass {}
 
-    const scope = new Scope({
-      test1: asFunction(() => 1, { disposer: disposer1 }),
-      test2: asClass(Test2, { disposer: disposer2 }),
-      test3: asFunction(() => 1, { cached: true, disposer: disposer3 }),
-      test4: 'raw_value',
-    })
+    class TestDisposableScope extends Scope<{
+      test1: number
+      test2: TestClass
+      test3: number
+    }> {
+      constructor() {
+        super({
+          test1: asFunction(() => 1, { disposer: disposer1 }),
+          test2: asClass(TestClass, { disposer: disposer2 }),
+          test3: asFunction(() => 1, { cached: true, disposer: disposer3 }),
+        })
+      }
+    }
 
-    await scope.dispose()
+    const disposableScope = new TestDisposableScope()
+
+    await disposableScope.dispose()
 
     expect(disposer1).toHaveBeenCalledTimes(1)
     expect(disposer2).toHaveBeenCalledTimes(1)
@@ -42,67 +67,94 @@ describe(`${Scope.name}`, () => {
   })
 
   describe('register', () => {
-    scope.register({ newValue: 'test' })
+    const scope = new Scope({
+      value: 'test',
+      overwriteTest: 'init',
+    })
 
     it('registers value', () => {
-      expect(scope.newValue).toStrictEqual('test')
+      expect(scope.container.value).toStrictEqual('test')
     })
 
     it('overwrites a value', () => {
-      scope.register({ overwritten: 'test' })
-      scope.register({ overwritten: 'overwritten' })
+      expect(scope.container.overwriteTest).toStrictEqual('init')
 
-      expect(scope.overwritten).toStrictEqual('overwritten')
-    })
-
-    it('throws error when trying to register with a reserved name', () => {
-      expect(() => scope.register({ register: 'test' })).toThrow(ReservedNameError)
+      scope.register({ overwriteTest: 'overwritten' })
+      expect(scope.container.overwriteTest).toStrictEqual('overwritten')
     })
   })
 
-  describe('child scope', () => {
-    const childScope = scope.createChildScope({
-      childValue: asFunction(() => 'test'),
-    })
+  describe('extended scope', () => {
+    interface ChildContainer extends TestContainer {
+      childValue: string
+    }
+    class ChildScope<TExtended extends ChildContainer> extends TestScope<TExtended> {
+      constructor(extraRegistrations: ExtendedInjection<ChildContainer, TExtended>) {
+        // type check own registrations
+        const registrations: Injection<Omit<ChildContainer, keyof TestContainer>> = {
+          childValue: 'test',
+        }
+        super({
+          ...registrations,
+          ...extraRegistrations,
+        } as Injection<TExtended>)
+      }
+    }
 
-    const child2 = childScope.createChildScope({
-      secondChildTest: asFunction(() => 'childTest2'),
-    })
+    const childScope = new ChildScope()
+
+    interface GrandChildContainer extends ChildContainer {
+      grandChildValue: string
+    }
+    class GrandChildScope extends ChildScope<GrandChildContainer> {
+      constructor() {
+        super({
+          grandChildValue: asFunction(() => 'grandChildValue'),
+        })
+      }
+    }
+
+    const grandChild = new GrandChildScope()
 
     it('resolves own value', () => {
-      expect(childScope.childValue).toStrictEqual('test')
+      expect(childScope.container.childValue).toStrictEqual('test')
     })
 
     it('resolves parent value', () => {
-      expect(childScope.test).toStrictEqual(TEST_VALUE)
+      expect(childScope.container.test).toStrictEqual(TEST_VALUE)
     })
 
     it('resolves twice removed parent value', () => {
-      expect(child2.test).toStrictEqual(TEST_VALUE)
+      expect(grandChild.container.test).toStrictEqual(TEST_VALUE)
+      expect(grandChild.container.grandChildValue).toStrictEqual('grandChildValue')
     })
 
-    it('child value takes priority over parent', async () => {
-      const parent = new Scope({
-        test: asFunction(() => 'test'),
-      })
+    it('child value overwrites parent', async () => {
+      const overwriteValue = 'overwriteValue'
+      class ChildScope extends TestScope {
+        constructor() {
+          super({
+            test: overwriteValue,
+          })
+        }
+      }
 
-      const child = parent.createChildScope({
-        test: asFunction(() => 'childTest'),
-      })
+      const child = new ChildScope()
 
-      expect(child.test).toStrictEqual('childTest')
+      expect(child.container.test).toStrictEqual(overwriteValue)
     })
 
     it('disposes child scope from parent', async () => {
-      const parent = new Scope({
-        test: asFunction(() => 'test', { disposer: () => Promise.resolve() }),
-      })
-
       const childTestDisposer = jest.fn().mockResolvedValueOnce(1)
+      class ChildScope extends TestScope<ChildContainer> {
+        constructor() {
+          super({
+            childValue: asFunction(() => 'childTest', { disposer: childTestDisposer }),
+          })
+        }
+      }
 
-      parent.createChildScope({
-        childTest: asFunction(() => 'childTest', { disposer: childTestDisposer }),
-      })
+      const parent = new ChildScope()
 
       await parent.dispose()
 
@@ -110,21 +162,32 @@ describe(`${Scope.name}`, () => {
       expect(childTestDisposer).toHaveBeenCalledWith('childTest')
     })
 
-    it('disposes child scope without affecting parent', async () => {
+    it('disposes both parent & child registrations', async () => {
       const parentTestDisposer = jest.fn().mockResolvedValueOnce(1)
-      const parent = new Scope({
-        test: asFunction(() => 'test', { disposer: parentTestDisposer }),
-      })
+
+      class BaseScope<TExtended extends TestContainer> extends Scope<TExtended> {
+        constructor(extended: ExtendedInjection<TestContainer, TExtended>) {
+          super({
+            test: asFunction(() => 'test', { disposer: parentTestDisposer }),
+            ...extended,
+          } as Injection<TExtended>)
+        }
+      }
 
       const childTestDisposer = jest.fn().mockResolvedValueOnce(1)
-      const child = parent.createChildScope({
-        childTest: asFunction(() => 'childTest', { disposer: childTestDisposer }),
-      })
+      class ExtendedScope extends BaseScope<ChildContainer> {
+        constructor() {
+          super({
+            childValue: asFunction(() => 'childTest', { disposer: childTestDisposer }),
+          })
+        }
+      }
+      const child = new ExtendedScope()
 
       await child.dispose()
 
       expect(childTestDisposer).toHaveBeenCalledTimes(1)
-      expect(parentTestDisposer).not.toHaveBeenCalled()
+      expect(parentTestDisposer).toHaveBeenCalledTimes(1)
     })
   })
 })

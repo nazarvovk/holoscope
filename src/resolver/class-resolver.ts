@@ -1,10 +1,8 @@
-import { Merge } from 'ts-essentials'
-import { Resolver, IS_RESOLVER } from './resolver'
-import type { Scope } from '../scope'
-import { AbstractValues } from '../types'
+import { Container } from '../types'
+import { Resolver, IS_RESOLVER, isResolver } from './resolver'
 
-type Class<T, TDependencies extends AbstractValues> = new (scope: Scope<TDependencies>) => T
-type ClassResolverOptions<T, TInjectedDependencies extends AbstractValues = AbstractValues> = {
+type Class<TValue> = new (...args: any[]) => TValue
+type ClassResolverOptions<T> = {
   /**
    * If true, the class is instantiated once
    * and all the subsequent resolutions return the cached value
@@ -12,12 +10,9 @@ type ClassResolverOptions<T, TInjectedDependencies extends AbstractValues = Abst
   cached?: boolean
 
   /**
-   * Inject scope with values when resolving this dependency.
-   *
-   * Accepts an object, or a function that accepts scope
-   * as the only argument and returns an object
+   * Inject the container with values when resolving this dependency.
    */
-  inject?: TInjectedDependencies | ((scope: Scope) => TInjectedDependencies)
+  inject?: Record<string | symbol, unknown>
 
   /**
    * Function that is called when the scope is disposed.
@@ -30,43 +25,55 @@ type ClassResolverOptions<T, TInjectedDependencies extends AbstractValues = Abst
   disposer?: (value: T) => void | Promise<void>
 }
 
-class ClassResolver<
-  TValue,
-  TDependencies extends AbstractValues = AbstractValues,
-  TInjectedDependencies extends AbstractValues = AbstractValues,
-> implements Resolver<TValue, TDependencies>
-{
+class ClassResolver<TValue> implements Resolver<TValue> {
   readonly [IS_RESOLVER] = true
 
   private cache: TValue | null = null
 
-  constructor(
-    private class_: Class<TValue, Merge<TDependencies, TInjectedDependencies>>,
-    private options: ClassResolverOptions<TValue, TInjectedDependencies> = {},
-  ) {}
+  constructor(private class_: Class<TValue>, private options: ClassResolverOptions<TValue> = {}) {}
 
-  private getDependencyProxy(scope: Scope<TDependencies>) {
+  private getInjectionProxyContainer(container: Container) {
     const { inject } = this.options
-    const injected = typeof inject === 'function' ? inject(scope) : inject ?? Object.create(null)
-
-    return new Proxy(scope, {
-      get: (_, prop) => {
-        return injected[prop] ?? scope[prop]
-      },
-    }) as Scope<Merge<TDependencies, TInjectedDependencies>>
-  }
-
-  resolve(scope: Scope<TDependencies>): TValue {
-    const dependencyProxy = this.getDependencyProxy(scope)
-
-    if (this.options.cached) {
-      return this.cache ?? (this.cache = new this.class_(dependencyProxy))
+    if (!inject) {
+      return container
     }
 
+    return new Proxy(container, {
+      get: (originalContainer, dependencyName: keyof Container, proxy) => {
+        // using Object.hasOwn so that if inject overwrites a dependency with undefined or null,
+        // that injected value is returned
+        if (Object.hasOwn(inject, dependencyName)) {
+          const injectedDependency = inject[dependencyName]
+          if (isResolver(injectedDependency)) {
+            return injectedDependency.resolve(proxy)
+          }
+          return injectedDependency
+        }
+        return originalContainer[dependencyName]
+      },
+    })
+  }
+
+  public getValue(container: Container): TValue {
+    const dependencyProxy = this.getInjectionProxyContainer(container)
     return new this.class_(dependencyProxy)
   }
 
-  public async dispose(scope: Scope<TDependencies>): Promise<void> {
+  public resolve(container: Container): TValue {
+    if (this.options.cached && this.cache) {
+      return this.cache
+    }
+
+    const value = this.getValue(container)
+
+    if (this.options.cached) {
+      this.cache = value
+    }
+
+    return value
+  }
+
+  public async dispose(container: any): Promise<void> {
     const { disposer, cached } = this.options
 
     if (disposer) {
@@ -75,7 +82,7 @@ class ClassResolver<
           await disposer(this.cache)
         }
       } else {
-        const dependencyProxy = this.getDependencyProxy(scope)
+        const dependencyProxy = this.getInjectionProxyContainer(container)
         const value = new this.class_(dependencyProxy)
         await disposer(value)
       }
@@ -85,11 +92,7 @@ class ClassResolver<
   }
 }
 
-export const asClass = <
-  T,
-  TDependencies extends AbstractValues = AbstractValues,
-  TInjectedDependencies extends AbstractValues = AbstractValues,
->(
-  value: Class<T, Merge<TDependencies, TInjectedDependencies>>,
-  options?: ClassResolverOptions<T, TInjectedDependencies>,
-): ClassResolver<T, TDependencies, TInjectedDependencies> => new ClassResolver(value, options)
+export const asClass = <TValue>(
+  value: Class<TValue>,
+  options?: ClassResolverOptions<TValue>,
+): ClassResolver<TValue> => new ClassResolver(value, options)

@@ -27,3 +27,5 @@ lib/
 
 # Misc
 .DS_Store
+
+temp/

@@ -27,5 +27,6 @@ module.exports = {
         trailingComma: 'all',
       },
     ],
+    '@typescript-eslint/no-explicit-any': 'off',
   }
 }
