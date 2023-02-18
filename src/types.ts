@@ -1,7 +1,8 @@
 import { Resolver } from './resolver'
 import { Scope } from './scope'
 
-export type Container = Record<keyof any, unknown>
+// eslint-disable-next-line @typescript-eslint/ban-types
+export type Container = object
 
 export type ValueOrResolver<T> = T | Resolver<T>
 
