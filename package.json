@@ -1,6 +1,6 @@
 {
   "name": "holoscope",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Opinionated dependency injection.",
   "main": "lib/index.js",
   "files": [

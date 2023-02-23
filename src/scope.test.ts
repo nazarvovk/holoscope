@@ -222,5 +222,33 @@ describe(`${Scope.name}`, () => {
         'Resolver "protectedValue" not found.',
       )
     })
+
+    it('disposes protected value', async () => {
+      const protectedValueDisposer = jest.fn().mockResolvedValueOnce(1)
+
+      class ProtectedScope extends Scope<{ getter: string }> {
+        constructor() {
+          super({
+            getter: asFunction(({ protectedValue }) => protectedValue),
+          })
+
+          this.registerProtected({
+            protectedValue: asFunction(() => 'protected', {
+              cached: true,
+              disposer: protectedValueDisposer,
+            }),
+          })
+        }
+      }
+
+      const protectedScope = new ProtectedScope()
+
+      protectedScope.container.getter
+
+      await protectedScope.dispose()
+
+      expect(protectedValueDisposer).toHaveBeenCalledTimes(1)
+      expect(protectedValueDisposer).toHaveBeenCalledWith('protected')
+    })
   })
 })

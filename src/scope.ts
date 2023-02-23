@@ -98,11 +98,13 @@ export class Scope<TContainer extends object> {
   async dispose(): Promise<void> {
     // call dispose on every resolver of this scope
     await Promise.all(
-      Object.values(this.registrations).map(async (resolverOrValue: unknown) => {
-        if (isResolver(resolverOrValue)) {
-          await resolverOrValue.dispose?.(this.container)
-        }
-      }),
+      [...Object.values(this.registrations), ...Object.values(this.protectedRegistrations)].map(
+        async (resolverOrValue: unknown) => {
+          if (isResolver(resolverOrValue)) {
+            await resolverOrValue.dispose?.(this.container)
+          }
+        },
+      ),
     )
   }
 }
