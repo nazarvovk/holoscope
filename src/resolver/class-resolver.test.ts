@@ -158,5 +158,37 @@ describe(`${asClass.name}`, () => {
     it('injected resolver is called with', () => {
       expect(injectScope.container.injectResolverTest.value).toStrictEqual(8)
     })
+
+    it('disposes injected resolvers', async () => {
+      const disposerMock = jest.fn()
+
+      const disposerScope = new Scope({
+        test: asClass(
+          class C {
+            val: string
+            constructor(public container: { injectedDependency: string }) {
+              // access injected dependency to make sure it has been resolved before disposal
+              this.val = container.injectedDependency
+            }
+          },
+          {
+            inject: {
+              injectedDependency: asFunction(() => 'test', {
+                cached: true,
+                disposer: disposerMock,
+              }),
+            },
+          },
+        ),
+      })
+
+      const outerDep = disposerScope.container.test
+
+      await disposerScope.dispose()
+
+      expect(outerDep.val).toStrictEqual('test')
+      expect(disposerMock).toHaveBeenCalledTimes(1)
+      expect(disposerMock).toHaveBeenCalledWith('test')
+    })
   })
 })

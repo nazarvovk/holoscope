@@ -54,7 +54,11 @@ class ClassResolver<TValue> implements Resolver<TValue> {
     })
   }
 
-  public getValue(container: Container): TValue {
+  /**
+   * Get the value of the dependency given the container.
+   * Handles per-resolver inject.
+   */
+  private getValue(container: Container): TValue {
     const dependencyProxy = this.getInjectionProxyContainer(container)
     return new this.class_(dependencyProxy)
   }
@@ -74,7 +78,17 @@ class ClassResolver<TValue> implements Resolver<TValue> {
   }
 
   public async dispose(container: any): Promise<void> {
-    const { disposer, cached } = this.options
+    const { disposer, cached, inject } = this.options
+
+    if (inject) {
+      await Promise.all(
+        Object.values(inject).map(async (injection) => {
+          if (isResolver(injection)) {
+            return injection.dispose?.(container)
+          }
+        }),
+      )
+    }
 
     if (disposer) {
       if (cached) {
@@ -82,8 +96,7 @@ class ClassResolver<TValue> implements Resolver<TValue> {
           await disposer(this.cache)
         }
       } else {
-        const dependencyProxy = this.getInjectionProxyContainer(container)
-        const value = new this.class_(dependencyProxy)
+        const value = this.getValue(container)
         await disposer(value)
       }
     }

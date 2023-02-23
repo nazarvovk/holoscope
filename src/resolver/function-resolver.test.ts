@@ -151,5 +151,34 @@ describe(`${asFunction.name}`, () => {
     it('injected resolver is called with', () => {
       expect(injectScope.container.injectResolverTest).toStrictEqual(8)
     })
+
+    it('disposes injected resolvers', async () => {
+      const disposerMock = jest.fn()
+
+      const disposerScope = new Scope({
+        test: asFunction(
+          ({ injectedDependency }) => {
+            // access injected dependency to make sure it has been resolved before disposal
+            return injectedDependency
+          },
+          {
+            inject: {
+              injectedDependency: asFunction(() => 'test', {
+                cached: true,
+                disposer: disposerMock,
+              }),
+            },
+          },
+        ),
+      })
+
+      const outerDep = disposerScope.container.test
+
+      await disposerScope.dispose()
+
+      expect(outerDep).toStrictEqual('test')
+      expect(disposerMock).toHaveBeenCalledTimes(1)
+      expect(disposerMock).toHaveBeenCalledWith('test')
+    })
   })
 })
