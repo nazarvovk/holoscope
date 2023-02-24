@@ -62,7 +62,7 @@ class FunctionResolver<TValue> implements Resolver<TValue> {
    * Get the value of the dependency given the container.
    * Handles per-resolver inject.
    */
-  public getValue(container: Container): TValue {
+  private getValue(container: Container): TValue {
     const dependencyProxy = this.getInjectionProxyContainer(container)
     return this.function_(dependencyProxy)
   }
