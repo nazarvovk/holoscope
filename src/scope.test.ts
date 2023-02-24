@@ -66,6 +66,26 @@ describe(`${Scope.name}`, () => {
     expect(disposer3).not.toHaveBeenCalled()
   })
 
+  describe.each([false, null, undefined, 0, '', NaN])('falsy registrations', (falsyValue) => {
+    it('handles falsy registrations', () => {
+      const falsyScope = new Scope({
+        falsyValue,
+      })
+
+      expect(() => falsyScope.container.falsyValue).not.toThrow()
+      expect(falsyScope.container.falsyValue).toStrictEqual(falsyValue)
+    })
+
+    it('handles falsy protected registrations', () => {
+      const falsyScope = new Scope({
+        publicValue: asFunction(({ falsyValue }) => falsyValue),
+      }).registerProtected({ falsyValue })
+
+      expect(() => falsyScope.container.publicValue).not.toThrow()
+      expect(falsyScope.container.publicValue).toStrictEqual(falsyValue)
+    })
+  })
+
   describe('register', () => {
     const scope = new Scope({
       value: 'test',

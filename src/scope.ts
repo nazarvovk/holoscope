@@ -1,4 +1,4 @@
-import type { Injection } from './types'
+import type { Injection, ValueOrResolver } from './types'
 import { isResolver } from './resolver'
 import { AssignmentError, ResolutionError } from './errors'
 
@@ -47,16 +47,19 @@ export class Scope<TContainer extends object> {
    * Differs from container, prioritizing protected registrations
    */
   private resolutionContainerProxy = new Proxy(this.registrations, {
-    get: (registrations, prop, proxy) => {
-      const registration =
-        this.protectedRegistrations[prop as any] ?? registrations[prop as keyof TContainer]
-      if (registration) {
-        if (isResolver(registration)) {
-          return registration.resolve(proxy)
-        }
-        return registration
+    get: (registrations, dependencyName, proxy) => {
+      let registration: ValueOrResolver<unknown>
+      if (Object.hasOwn(this.protectedRegistrations, dependencyName)) {
+        registration = this.protectedRegistrations[dependencyName as any]
+      } else if (Object.hasOwn(registrations, dependencyName)) {
+        registration = registrations[dependencyName as keyof TContainer]
+      } else {
+        throw new ResolutionError(dependencyName)
       }
-      throw new ResolutionError(prop)
+      if (isResolver(registration)) {
+        return registration.resolve(proxy)
+      }
+      return registration
     },
     set: (_, prop) => {
       throw new AssignmentError(prop)
@@ -67,15 +70,16 @@ export class Scope<TContainer extends object> {
    * Public container proxy.
    */
   public container = new Proxy(this.registrations, {
-    get: (registrations, prop) => {
-      const registration = registrations[prop as keyof TContainer]
-      if (registration) {
+    get: (registrations, dependencyName) => {
+      if (Object.hasOwn(registrations, dependencyName)) {
+        const registration = registrations[dependencyName as keyof TContainer]
         if (isResolver(registration)) {
           return registration.resolve(this.resolutionContainerProxy)
         }
         return registration
       }
-      throw new ResolutionError(prop)
+
+      throw new ResolutionError(dependencyName)
     },
     set: (_, prop) => {
       throw new AssignmentError(prop)
