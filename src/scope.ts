@@ -28,7 +28,7 @@ import { AssignmentError, ResolutionError } from './errors'
  * ```
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
-export class Scope<TContainer extends object> {
+export class Scope<TContainer extends object = object> {
   public registrations = {} as Injection<TContainer>
   private protectedRegistrations = {} as Injection<any>
 
