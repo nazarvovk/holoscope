@@ -1,3 +1,17 @@
+#### 0.5.5 (2023-06-02)
+
+##### Chores
+
+*  update github workflows (6219da88)
+
+##### Bug Fixes
+
+*  prepublish script use pnpm (f9638e95)
+
+##### Other Changes
+
+* //github.com/nazarvovk/holoscope (dcb97f6c)
+
 # [0.3.0](https://github.com/nazarvovk/holoscope/compare/v0.2.0...v0.3.0) (2022-02-05)
 
 
