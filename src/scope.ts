@@ -4,28 +4,7 @@ import { ResolutionError } from './errors'
 
 /**
  * Scope that allows dependency injection.
- *
  * @param registrations Record of values that can either be a raw value or a resolver
- * @example
- * ```typescript
- * interface ExampleContainer {
- *   example1: string
- *   example2: string
- * }
- *
- * class ExampleScope extends Scope<ExampleContainer> {
- *   constructor() {
- *     super({
- *       example1: 'value1',
- *       example2: asFunction((container: ExampleContainer) => container.example1 + 'value2'),
- *     })
- *   }
- * }
- *
- * const exampleScope = new ExampleScope()
- * const example1 = exampleScope.container.example1 // 'value1'
- * const example2 = exampleScope.container.example2 // 'value1value2'
- * ```
  */
 export class Scope<TContainer extends Container = Container> {
   public registrations = {} as Injection<TContainer>
