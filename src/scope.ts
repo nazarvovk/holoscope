@@ -1,6 +1,6 @@
 import type { Container, Injection, ValueOrResolver } from './types'
 import { Resolver, isResolver } from './resolver'
-import { AssignmentError, ResolutionError } from './errors'
+import { ResolutionError } from './errors'
 
 /**
  * Scope that allows dependency injection.
@@ -42,9 +42,9 @@ export class Scope<TContainer extends Container = Container> {
   private resolutionContainerProxy = new Proxy(this.registrations, {
     get: (registrations, dependencyName, proxy) => {
       let registration: ValueOrResolver<unknown>
-      if (Object.hasOwn(this.protectedRegistrations, dependencyName)) {
+      if (dependencyName in this.protectedRegistrations) {
         registration = this.protectedRegistrations[dependencyName as any]
-      } else if (Object.hasOwn(registrations, dependencyName)) {
+      } else if (dependencyName in registrations) {
         registration = registrations[dependencyName as keyof TContainer]
       } else {
         throw new ResolutionError(dependencyName)
@@ -61,18 +61,14 @@ export class Scope<TContainer extends Container = Container> {
    */
   public container = new Proxy(this.registrations, {
     get: (registrations, dependencyName) => {
-      if (Object.hasOwn(registrations, dependencyName)) {
-        const registration = registrations[dependencyName as keyof TContainer]
-        if (isResolver(registration)) {
-          return (registration as Resolver<unknown>).resolve(this.resolutionContainerProxy)
-        }
-        return registration
+      if (!(dependencyName in registrations)) {
+        throw new ResolutionError(dependencyName)
       }
-
-      throw new ResolutionError(dependencyName)
-    },
-    set: (_, prop) => {
-      throw new AssignmentError(prop)
+      const registration = registrations[dependencyName as keyof TContainer]
+      if (isResolver(registration)) {
+        return (registration as Resolver<unknown>).resolve(this.resolutionContainerProxy)
+      }
+      return registration
     },
   }) as TContainer
 
@@ -87,10 +83,9 @@ export class Scope<TContainer extends Container = Container> {
   }
 
   /**
-   * Call all of the resolver disposers and clear resolver cache.
+   * Call all of the resolver disposers.
    */
   async dispose(): Promise<void> {
-    // call dispose on every resolver of this scope
     await Promise.all(
       [...Object.values(this.registrations), ...Object.values(this.protectedRegistrations)].map(
         async (resolverOrValue: unknown) => {

@@ -44,9 +44,7 @@ export class FactoryResolver<TValue> implements Resolver<TValue> {
 
     return new Proxy(container, {
       get: (originalContainer, dependencyName: keyof Container, proxy) => {
-        // using Object.hasOwn so that if inject overwrites a dependency with undefined or null,
-        // that injected value is returned
-        if (Object.hasOwn(inject, dependencyName)) {
+        if (dependencyName in inject) {
           const injectedDependency = inject[dependencyName]
           if (isResolver(injectedDependency)) {
             return injectedDependency.resolve(proxy)

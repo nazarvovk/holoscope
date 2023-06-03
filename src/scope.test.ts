@@ -1,6 +1,5 @@
 import { Scope } from './scope'
 import { asFunction, asClass } from './resolver'
-import { AssignmentError } from './errors'
 import { Container, ExtendedInjection, Injection } from './types'
 
 describe(`${Scope.name}`, () => {
@@ -30,10 +29,6 @@ describe(`${Scope.name}`, () => {
 
   it('scope has the registrations', () => {
     expect(scope.container.test).toStrictEqual(TEST_VALUE)
-  })
-
-  it('throws error if you try to assign a prop', () => {
-    expect(() => (scope.container.test = '2')).toThrow(AssignmentError)
   })
 
   it('scope calls all disposers', async () => {
@@ -239,7 +234,7 @@ describe(`${Scope.name}`, () => {
     it('protected value is not available from outside', () => {
       // @ts-expect-error shouldn't be available
       expect(() => protectedScope.container.protectedValue).toThrow(
-        'Resolver "protectedValue" not found.',
+        'No registration "protectedValue".',
       )
     })
 
