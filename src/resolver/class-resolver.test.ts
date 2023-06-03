@@ -41,7 +41,7 @@ describe(`${asClass.name}`, () => {
       cacheScope.container.test
       cacheScope.container.test
 
-      expect(ClassMock).toBeCalledTimes(1)
+      expect(ClassMock).toHaveBeenCalledTimes(1)
     })
   })
 

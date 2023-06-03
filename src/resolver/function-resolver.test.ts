@@ -1,6 +1,7 @@
 import { ResolutionError } from '../errors'
 import { Scope } from '../scope'
 import { asFunction } from './function-resolver'
+import { isResolver } from './resolver'
 
 describe(`${asFunction.name}`, () => {
   const scope = new Scope({
@@ -8,6 +9,11 @@ describe(`${asFunction.name}`, () => {
       return 1 + container.dep
     }),
     dep: 2,
+  })
+
+  it('is a resolver', () => {
+    const resolver = asFunction(() => 1)
+    expect(isResolver(resolver)).toBe(true)
   })
 
   it('returns value', () => {
@@ -39,7 +45,7 @@ describe(`${asFunction.name}`, () => {
       cacheScope.container.test
       cacheScope.container.test
 
-      expect(fnMock).toBeCalledTimes(1)
+      expect(fnMock).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -145,7 +151,7 @@ describe(`${asFunction.name}`, () => {
     })
 
     it('injected is not available to other dependencies', () => {
-      expect(() => injectScope.container.invalidDependency).toThrowError(ResolutionError)
+      expect(() => injectScope.container.invalidDependency).toThrow(ResolutionError)
     })
 
     it('injected resolver is called with', () => {
