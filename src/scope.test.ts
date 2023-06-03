@@ -33,7 +33,7 @@ describe(`${Scope.name}`, () => {
   })
 
   it('throws error if you try to assign a prop', () => {
-    expect(() => (scope.container.test = '2')).toThrowError(AssignmentError)
+    expect(() => (scope.container.test = '2')).toThrow(AssignmentError)
   })
 
   it('scope calls all disposers', async () => {
@@ -238,7 +238,7 @@ describe(`${Scope.name}`, () => {
 
     it('protected value is not available from outside', () => {
       // @ts-expect-error shouldn't be available
-      expect(() => protectedScope.container.protectedValue).toThrowError(
+      expect(() => protectedScope.container.protectedValue).toThrow(
         'Resolver "protectedValue" not found.',
       )
     })

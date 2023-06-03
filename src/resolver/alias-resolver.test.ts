@@ -7,7 +7,7 @@ describe(`${aliasTo.name}`, () => {
 
   const scope = new Scope({
     test: asFunction(fn),
-    alias: aliasTo('test'),
+    alias: aliasTo<number>('test'),
   })
 
   it('returns aliased value', () => {
