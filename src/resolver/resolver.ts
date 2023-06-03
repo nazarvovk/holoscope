@@ -10,5 +10,4 @@ export interface Resolver<TValue> {
   [IS_RESOLVER]: true
 }
 
-export const isResolver = (value: unknown): value is Resolver<unknown> =>
-  Boolean(value && typeof value === 'object' && Object.hasOwn(value, IS_RESOLVER))
+export const isResolver = (value: any): value is Resolver<unknown> => value?.[IS_RESOLVER] === true
