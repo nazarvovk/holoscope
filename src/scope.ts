@@ -33,12 +33,6 @@ export class Scope<TContainer extends Container = Container> {
 
   constructor(registrations: Injection<TContainer>) {
     this.register(registrations)
-
-    return new Proxy(this, {
-      set: (_, prop) => {
-        throw new AssignmentError(prop)
-      },
-    })
   }
 
   /**
@@ -60,10 +54,7 @@ export class Scope<TContainer extends Container = Container> {
       }
       return registration
     },
-    set: (_, prop) => {
-      throw new AssignmentError(prop)
-    },
-  }) as TContainer
+  })
 
   /**
    * Public container proxy.
