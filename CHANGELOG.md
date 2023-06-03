@@ -1,3 +1,37 @@
+#### 0.6.0 (2023-06-03)
+
+##### Chores
+
+*  jest config update (ec0c97ef)
+*  add bundle analyzer (35e8ea29)
+*  upgrade dependencies (465f45a3)
+*  rollup build (43baa89b)
+*  changelog generator (a250252e)
+*  update github workflows (6219da88)
+
+##### New Features
+
+*  remove error on assignment to scope (9afd8a4b)
+*  asResolvers (a121df2a)
+
+##### Bug Fixes
+
+*  isResolver (f872d88e)
+*  test types & canonical name (3ced9378)
+*  prepublish script use pnpm (f9638e95)
+
+##### Other Changes
+
+* //github.com/nazarvovk/holoscope (dcb97f6c)
+
+##### Refactors
+
+*  remove example in comment (e639c360)
+*  rm errors except for resolution error + use in instead of Object.hasOwn (c1a1aae0)
+*  unnecessary anonymous func in asFunction (fba03da7)
+*  container type (78da80dd)
+*  factory resolver, reduce bundle size (88b0d4f7)
+
 #### 0.5.5 (2023-06-02)
 
 ##### Chores
