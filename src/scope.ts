@@ -1,5 +1,5 @@
-import type { Injection, ValueOrResolver } from './types'
-import { isResolver } from './resolver'
+import type { Container, Injection, ValueOrResolver } from './types'
+import { Resolver, isResolver } from './resolver'
 import { AssignmentError, ResolutionError } from './errors'
 
 /**
@@ -27,8 +27,7 @@ import { AssignmentError, ResolutionError } from './errors'
  * const example2 = exampleScope.container.example2 // 'value1value2'
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/ban-types
-export class Scope<TContainer extends object = object> {
+export class Scope<TContainer extends Container = Container> {
   public registrations = {} as Injection<TContainer>
   private protectedRegistrations = {} as Injection<any>
 
@@ -74,7 +73,7 @@ export class Scope<TContainer extends object = object> {
       if (Object.hasOwn(registrations, dependencyName)) {
         const registration = registrations[dependencyName as keyof TContainer]
         if (isResolver(registration)) {
-          return registration.resolve(this.resolutionContainerProxy)
+          return (registration as Resolver<unknown>).resolve(this.resolutionContainerProxy)
         }
         return registration
       }
