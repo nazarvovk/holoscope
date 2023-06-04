@@ -1,4 +1,4 @@
-import type { Container, Injection, ValueOrResolver } from './types'
+import type { Container, Injection } from './types'
 import { Resolver, isResolver } from './resolver'
 import { ResolutionError } from './errors'
 
