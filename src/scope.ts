@@ -20,18 +20,14 @@ export class Scope<TContainer extends Container = Container> {
    */
   private resolutionContainerProxy = new Proxy(this.registrations, {
     get: (registrations, dependencyName, proxy) => {
-      let registration: ValueOrResolver<unknown>
       if (dependencyName in this.protectedRegistrations) {
-        registration = this.protectedRegistrations[dependencyName as any]
-      } else if (dependencyName in registrations) {
-        registration = registrations[dependencyName as keyof TContainer]
-      } else {
-        throw new ResolutionError(dependencyName)
+        const registration = this.protectedRegistrations[dependencyName as any]
+        if (isResolver(registration)) {
+          return registration.resolve(proxy)
+        }
+        return registration
       }
-      if (isResolver(registration)) {
-        return registration.resolve(proxy)
-      }
-      return registration
+      return this.container[dependencyName as keyof TContainer]
     },
   })
 
@@ -40,6 +36,7 @@ export class Scope<TContainer extends Container = Container> {
    */
   public container = new Proxy(this.registrations, {
     get: (registrations, dependencyName) => {
+      if (dependencyName === '$$typeof') return Symbol.for('holoscope.container')
       if (!(dependencyName in registrations)) {
         throw new ResolutionError(dependencyName)
       }
@@ -69,7 +66,7 @@ export class Scope<TContainer extends Container = Container> {
       [...Object.values(this.registrations), ...Object.values(this.protectedRegistrations)].map(
         async (resolverOrValue: unknown) => {
           if (isResolver(resolverOrValue)) {
-            await resolverOrValue.dispose?.(this.container)
+            await resolverOrValue.dispose?.(this.resolutionContainerProxy)
           }
         },
       ),
