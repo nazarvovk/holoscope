@@ -1,3 +1,25 @@
+#### 0.6.2 (2023-06-04)
+
+##### Chores
+
+*  bump v0.6.1 (7d1e9a1b)
+
+##### New Features
+
+*  asResolvers dispose (f41cf789)
+*  pass container to disposer (cd4930b5)
+*  container $$typeof (02cccef2)
+
+##### Bug Fixes
+
+*  export asResolvers (9785f4a0)
+*  github publish, maybe? (d596e0d3)
+
+##### Refactors
+
+*  types (f9bcc648)
+*  rm unused type import (8d5d6ca1)
+
 #### 0.6.0 (2023-06-03)
 
 ##### Chores
