@@ -15,6 +15,16 @@ class ResolversArrayResolver<T extends [...unknown[]]> implements Resolver<T> {
       return resolverOrValue
     }) as T
   }
+
+  async dispose(container: Container): Promise<void> {
+    await Promise.all(
+      this.resolvers.map(async (resolverOrValue) => {
+        if (isResolver(resolverOrValue)) {
+          await resolverOrValue.dispose?.(container)
+        }
+      }),
+    )
+  }
 }
 
 export const asResolvers = <T extends [...unknown[]]>(
