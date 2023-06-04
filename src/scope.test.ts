@@ -164,7 +164,9 @@ describe(`${Scope.name}`, () => {
       class ChildScope extends TestScope<ChildContainer> {
         constructor() {
           super({
-            childValue: asFunction(() => 'childTest', { disposer: childTestDisposer }),
+            childValue: asFunction(() => 'childTest', {
+              disposer: childTestDisposer,
+            }),
           })
         }
       }
@@ -174,7 +176,7 @@ describe(`${Scope.name}`, () => {
       await parent.dispose()
 
       expect(childTestDisposer).toHaveBeenCalledTimes(1)
-      expect(childTestDisposer).toHaveBeenCalledWith('childTest')
+      expect(childTestDisposer.mock.calls[0][0]).toStrictEqual('childTest')
     })
 
     it('disposes both parent & child registrations', async () => {
@@ -263,7 +265,7 @@ describe(`${Scope.name}`, () => {
       await protectedScope.dispose()
 
       expect(protectedValueDisposer).toHaveBeenCalledTimes(1)
-      expect(protectedValueDisposer).toHaveBeenCalledWith('protected')
+      expect(protectedValueDisposer.mock.calls[0][0]).toStrictEqual('protected')
     })
   })
 })

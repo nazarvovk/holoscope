@@ -23,7 +23,7 @@ export type FactoryResolverOptions<TValue> = {
    *
    * If disposer returns a Promise, it is awaited.
    */
-  disposer?: (value: TValue) => void | Promise<void>
+  disposer?: (value: TValue, container: Container) => void | Promise<void>
 }
 
 export class FactoryResolver<TValue> implements Resolver<TValue> {
@@ -79,7 +79,7 @@ export class FactoryResolver<TValue> implements Resolver<TValue> {
     return value
   }
 
-  public async dispose(container: any): Promise<void> {
+  public async dispose(container: Container): Promise<void> {
     const { disposer, cached, inject } = this.options
 
     if (inject) {
@@ -95,11 +95,11 @@ export class FactoryResolver<TValue> implements Resolver<TValue> {
     if (disposer) {
       if (cached) {
         if (this.cache) {
-          await disposer(this.cache)
+          await disposer(this.cache, container)
         }
       } else {
         const value = this.getValue(container)
-        await disposer(value)
+        await disposer(value, container)
       }
     }
 

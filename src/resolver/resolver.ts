@@ -5,7 +5,7 @@ export const IS_RESOLVER = Symbol.for('IS_RESOLVER')
 export interface Resolver<TValue> {
   resolve: (container: Container) => TValue
 
-  dispose?: (container: unknown) => Promise<void>
+  dispose?: (container: Container) => Promise<void>
 
   [IS_RESOLVER]: true
 }

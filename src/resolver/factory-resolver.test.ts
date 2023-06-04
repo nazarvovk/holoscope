@@ -1,47 +1,51 @@
+import { ResolutionError } from '../errors'
 import { Scope } from '../scope'
-import { asClass } from './class-resolver'
 import { asFunction } from './function-resolver'
+import { isResolver } from './resolver'
 
-describe(`${asClass.name}`, () => {
-  class TestService {
-    constructor(public container: { dep: number }) {}
-
-    plusDep(value: number) {
-      return value + this.container.dep
-    }
-  }
-
+describe(`${asFunction.name}`, () => {
   const scope = new Scope({
-    test: asClass(TestService),
+    test: asFunction((container: { dep: number }) => {
+      return 1 + container.dep
+    }),
     dep: 2,
   })
 
-  it('resolves to an instance', () => {
-    expect(scope.container.test).toBeInstanceOf(TestService)
+  it('is a resolver', () => {
+    const resolver = asFunction(() => 1)
+    expect(isResolver(resolver)).toBe(true)
   })
 
   it('returns value', () => {
-    expect(scope.container.test.plusDep(1)).toStrictEqual(3)
+    expect(scope.container.test).toStrictEqual(3)
   })
 
   it('returns different value after a dependency is changed', () => {
     scope.register({ dep: 4 })
-
-    expect(scope.container.test.plusDep(2)).toStrictEqual(6)
+    expect(scope.container.test).toStrictEqual(5)
   })
 
   describe('cache', () => {
-    const ClassMock = jest.fn().mockReturnValueOnce({})
-    const cacheScope = new Scope({
-      test: asClass(ClassMock, { cached: true }),
-    })
+    const fnMock = jest.fn().mockReturnValueOnce(1)
+
+    class CacheScope extends Scope<{
+      test: number
+    }> {
+      constructor() {
+        super({
+          test: asFunction(fnMock, { cached: true }),
+        })
+      }
+    }
+
+    const cacheScope = new CacheScope()
 
     it('calls function only once', () => {
       cacheScope.container.test
       cacheScope.container.test
       cacheScope.container.test
 
-      expect(ClassMock).toHaveBeenCalledTimes(1)
+      expect(fnMock).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -51,7 +55,7 @@ describe(`${asClass.name}`, () => {
       const disposerMock = jest.fn()
 
       const disposerScope = new Scope({
-        test: asClass(fnMock, { cached: true, disposer: disposerMock }),
+        test: asFunction(fnMock, { cached: true, disposer: disposerMock }),
       })
 
       disposerScope.container.test
@@ -59,7 +63,7 @@ describe(`${asClass.name}`, () => {
       await disposerScope.dispose()
 
       expect(disposerMock).toHaveBeenCalledTimes(1)
-      expect(disposerMock).toHaveBeenCalledWith({ test: 1 })
+      expect(disposerMock.mock.calls[0][0]).toStrictEqual({ test: 1 })
     })
 
     it('does not call disposer if value was not resolved', async () => {
@@ -67,7 +71,7 @@ describe(`${asClass.name}`, () => {
       const disposerMock = jest.fn()
 
       const disposerScope = new Scope({
-        test: asClass(fnMock, { cached: true, disposer: disposerMock }),
+        test: asFunction(fnMock, { cached: true, disposer: disposerMock }),
       })
 
       await disposerScope.dispose()
@@ -80,7 +84,7 @@ describe(`${asClass.name}`, () => {
       const disposerMock = jest.fn()
 
       const disposerScope = new Scope({
-        test: asClass(fnMock, { disposer: disposerMock }),
+        test: asFunction(fnMock, { disposer: disposerMock }),
       })
 
       disposerScope.container.test
@@ -89,48 +93,39 @@ describe(`${asClass.name}`, () => {
 
       expect(fnMock).toHaveBeenCalledTimes(2)
       expect(disposerMock).toHaveBeenCalledTimes(1)
-      expect(disposerMock).toHaveBeenCalledWith({ test: 1 })
+      expect(disposerMock.mock.calls[0][0]).toStrictEqual({ test: 1 })
     })
   })
 
   describe('inject', () => {
-    type TestClassContainer = {
+    type InjectScopeContainer = {
+      scopeDependency: number
+      test: number
+      invalidDependency: unknown
+      injectResolverTest: number
+    }
+
+    type FnContainer = {
       scopeDependency: number
       injectedDependency: number
     }
 
-    class TestClass {
-      value: number
+    const addScopeDependencyToInjectedDependency = (container: FnContainer) =>
+      container.scopeDependency + container.injectedDependency
 
-      constructor(public container: TestClassContainer) {
-        this.value = container.scopeDependency + container.injectedDependency
-      }
-    }
-
-    class InjectResolverTestClass {
-      value: number
-
-      constructor(public container: TestClassContainer & { dep: number }) {
-        this.value = container.scopeDependency + container.injectedDependency
-      }
-    }
-
-    type InjectTestContainer = {
-      test: TestClass
-      scopeDependency: number
-      injectResolverTest: InjectResolverTestClass
-    }
-
-    class InjectScope extends Scope<InjectTestContainer> {
+    class InjectScope extends Scope<InjectScopeContainer> {
       constructor() {
         super({
           scopeDependency: 3,
-          test: asClass(TestClass, {
+          test: asFunction(addScopeDependencyToInjectedDependency, {
             inject: {
               injectedDependency: 4,
             },
           }),
-          injectResolverTest: asClass(InjectResolverTestClass, {
+          // tries to access a dependency, that is injected on the other resolver, but not present in InjectScope
+          invalidDependency: asFunction((container) => container.injectedDependency),
+
+          injectResolverTest: asFunction(addScopeDependencyToInjectedDependency, {
             inject: {
               injectedDependency: asFunction(
                 ({ scopeDependency, dep }) =>
@@ -152,24 +147,25 @@ describe(`${asClass.name}`, () => {
     })
 
     it('injects dependency into the resolver', () => {
-      expect(injectScope.container.test.value).toStrictEqual(7)
+      expect(injectScope.container.test).toStrictEqual(7)
+    })
+
+    it('injected is not available to other dependencies', () => {
+      expect(() => injectScope.container.invalidDependency).toThrow(ResolutionError)
     })
 
     it('injected resolver is called with', () => {
-      expect(injectScope.container.injectResolverTest.value).toStrictEqual(8)
+      expect(injectScope.container.injectResolverTest).toStrictEqual(8)
     })
 
     it('disposes injected resolvers', async () => {
       const disposerMock = jest.fn()
 
       const disposerScope = new Scope({
-        test: asClass(
-          class C {
-            val: string
-            constructor(public container: { injectedDependency: string }) {
-              // access injected dependency to make sure it has been resolved before disposal
-              this.val = container.injectedDependency
-            }
+        test: asFunction(
+          ({ injectedDependency }) => {
+            // access injected dependency to make sure it has been resolved before disposal
+            return injectedDependency
           },
           {
             inject: {
@@ -186,9 +182,9 @@ describe(`${asClass.name}`, () => {
 
       await disposerScope.dispose()
 
-      expect(outerDep.val).toStrictEqual('test')
+      expect(outerDep).toStrictEqual('test')
       expect(disposerMock).toHaveBeenCalledTimes(1)
-      expect(disposerMock).toHaveBeenCalledWith('test')
+      expect(disposerMock.mock.calls[0][0]).toStrictEqual('test')
     })
   })
 })
