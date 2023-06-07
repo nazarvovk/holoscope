@@ -18,6 +18,10 @@ export type Injection<T> = {
   [K in keyof T]: ValueOrResolver<T[K]>
 }
 
+export type Registration<T> = {
+  [K in keyof T]: T[K] extends Resolver<unknown> ? T[K] : Resolver<T[K]>
+}
+
 /**
  * Type of a parameter accepted by the constructor of an extendable scope
  *

@@ -1,5 +1,6 @@
+import { inject } from '../inject'
 import { Container, ContainerOf } from '../types'
-import { Resolver, IS_RESOLVER, isResolver } from './resolver'
+import { Resolver, IS_RESOLVER } from './resolver'
 
 export type Factory<T> = (container: ContainerOf<T>) => T
 
@@ -31,25 +32,20 @@ export class FactoryResolver<TValue> implements Resolver<TValue> {
 
   private cache: TValue | null = null
 
+  private injectedResolvers: Record<keyof Container, Resolver<unknown>> = {}
+
   constructor(
     private factory: Factory<TValue>,
     private options: FactoryResolverOptions<TValue> = {},
-  ) {}
+  ) {
+    inject(this.injectedResolvers, options.inject ?? {})
+  }
 
   private getInjectionProxyContainer(container: Container) {
-    const { inject } = this.options
-    if (!inject) {
-      return container
-    }
-
     return new Proxy(container, {
       get: (originalContainer, dependencyName: keyof Container, proxy) => {
-        if (dependencyName in inject) {
-          const injectedDependency = inject[dependencyName]
-          if (isResolver(injectedDependency)) {
-            return injectedDependency.resolve(proxy)
-          }
-          return injectedDependency
+        if (dependencyName in this.injectedResolvers) {
+          return this.injectedResolvers[dependencyName].resolve(proxy)
         }
         return originalContainer[dependencyName]
       },
@@ -80,17 +76,11 @@ export class FactoryResolver<TValue> implements Resolver<TValue> {
   }
 
   public async dispose(container: Container): Promise<void> {
-    const { disposer, cached, inject } = this.options
+    const { disposer, cached } = this.options
 
-    if (inject) {
-      await Promise.all(
-        Object.values(inject).map(async (injection) => {
-          if (isResolver(injection)) {
-            return injection.dispose?.(container)
-          }
-        }),
-      )
-    }
+    await Promise.all(
+      Object.values(this.injectedResolvers).map((resolver) => resolver.dispose?.(container)),
+    )
 
     if (disposer) {
       if (cached) {
