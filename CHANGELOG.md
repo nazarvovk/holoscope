@@ -1,3 +1,11 @@
+#### 0.7.0-rc.0 (2023-06-15)
+
+##### New Features
+
+*  export factory resolver, add cached helpers (a630744d)
+*  wrap raw values with asValue at injection-time (f0903951)
+* **test:**  add $$typeof test (1a511129)
+
 #### 0.6.2 (2023-06-04)
 
 ##### Chores
