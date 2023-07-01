@@ -27,6 +27,17 @@ describe(`${asResolvers.name}`, () => {
     expect(factory2).toHaveBeenCalledWith(container)
   })
 
+  it("doesn't resolve not accessed members", () => {
+    const resolver = asResolvers([asFunction(factory1), asFunction(factory2)])
+
+    const dependencies = resolver.resolve(container) satisfies [number, string]
+
+    dependencies[1]
+
+    expect(factory1).not.toHaveBeenCalledWith(container)
+    expect(factory2).toHaveBeenCalledWith(container)
+  })
+
   describe('disposer', () => {
     it('disposes resolvers', async () => {
       expect.assertions(6)

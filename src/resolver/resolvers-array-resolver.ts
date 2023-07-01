@@ -15,8 +15,22 @@ class ResolversArrayResolver<T extends [...unknown[]]> implements Resolver<T> {
   }
 
   resolve(container: Container): T {
-    return this.resolvers.map((resolver) => {
-      return resolver.resolve(container)
+    return new Proxy(this.resolvers, {
+      get(resolvers, property, receiver) {
+        if (property === Symbol.iterator) {
+          return function* () {
+            for (const resolver of resolvers) {
+              yield resolver.resolve(container)
+            }
+          }
+        } else if (typeof property === 'string' && /^\d+$/.test(property)) {
+          const index = parseInt(property)
+          if (index >= 0 && index < resolvers.length) {
+            return resolvers[index].resolve(container)
+          }
+        }
+        return Reflect.get(resolvers, property, receiver)
+      },
     }) as T
   }
 
