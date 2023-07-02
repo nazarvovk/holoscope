@@ -21,10 +21,12 @@ export class Scope<TContainer extends Container = Container> {
   public container = new Proxy(this.registrations, {
     get: (registrations, dependencyName) => {
       if (dependencyName === '$$typeof') return Symbol.for('holoscope.container')
-      if (!(dependencyName in registrations)) {
-        throw new ResolutionError(dependencyName)
+      if (dependencyName in registrations) {
+        return registrations[dependencyName as keyof TContainer].resolve(
+          this.resolutionContainerProxy,
+        )
       }
-      return registrations[dependencyName].resolve(this.resolutionContainerProxy)
+      throw new ResolutionError(dependencyName)
     },
   }) as TContainer
 
@@ -33,11 +35,11 @@ export class Scope<TContainer extends Container = Container> {
    * Differs from container, prioritizing protected registrations
    */
   private resolutionContainerProxy = new Proxy(this.container, {
-    get: (registrations, dependencyName: any, proxy) => {
+    get: (registrations, dependencyName, proxy) => {
       if (dependencyName in this.protectedRegistrations) {
-        return this.protectedRegistrations[dependencyName].resolve(proxy)
+        return this.protectedRegistrations[dependencyName as keyof TContainer].resolve(proxy)
       }
-      return this.container[dependencyName]
+      return this.container[dependencyName as keyof TContainer]
     },
   })
 

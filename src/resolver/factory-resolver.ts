@@ -32,7 +32,7 @@ export class FactoryResolver<TValue> implements Resolver<TValue> {
 
   private cache: TValue | null = null
 
-  private injectedResolvers: Record<keyof Container, Resolver<unknown>> = {}
+  private injectedResolvers: Record<keyof any, Resolver<unknown>> = {}
 
   constructor(
     private factory: Factory<TValue>,

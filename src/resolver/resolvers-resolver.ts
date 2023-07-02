@@ -1,11 +1,11 @@
 import { Resolver, IS_RESOLVER } from './resolver'
-import { Container, Injection, Registration } from '../types'
+import { Container, Injection } from '../types'
 import { inject } from '../inject'
 
 class ResolversResolver<T extends Container> implements Resolver<T> {
   readonly [IS_RESOLVER] = true
 
-  private resolvers: Registration<T> = {} as Registration<T>
+  private resolvers = {} as Record<keyof any, Resolver<unknown>>
 
   constructor(injections: Injection<T>) {
     inject(this.resolvers, injections)
@@ -14,7 +14,7 @@ class ResolversResolver<T extends Container> implements Resolver<T> {
   resolve(container: Container): T {
     return new Proxy(this.resolvers, {
       get: (resolvers, dependencyName) => {
-        return resolvers[dependencyName]?.resolve?.(container)
+        return resolvers[dependencyName as keyof T]?.resolve?.(container)
       },
     }) as T
   }

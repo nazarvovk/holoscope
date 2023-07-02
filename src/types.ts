@@ -1,9 +1,7 @@
 import { Resolver } from './resolver'
 import { Scope } from './scope'
 
-export type Container = {
-  [key: string | symbol | number]: unknown
-}
+export type Container = object
 
 export type ValueOrResolver<T> = T | Resolver<T>
 
