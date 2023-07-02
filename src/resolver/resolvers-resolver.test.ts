@@ -1,5 +1,5 @@
 import { asFunction } from './function-resolver'
-import { asResolvers } from './resolvers-array-resolver'
+import { asResolvers } from './resolvers-resolver'
 
 describe(`${asResolvers.name}`, () => {
   const factory1 = jest.fn(() => 1)
@@ -12,29 +12,70 @@ describe(`${asResolvers.name}`, () => {
   afterEach(() => jest.clearAllMocks())
 
   it('resolves', () => {
-    const resolver = asResolvers([asFunction(factory1), asFunction(factory2), true])
+    const resolver = asResolvers({
+      dep1: asFunction(factory1),
+      dep2: asFunction(factory2),
+      depValue: true,
+    })
 
-    const dependencies = resolver.resolve(container) satisfies [number, string, boolean]
+    const dependencies = resolver.resolve(container) satisfies {
+      dep1: number
+      dep2: string
+      depValue: boolean
+    }
 
     expect(dependencies).toMatchInlineSnapshot(`
-      [
-        1,
-        "2",
-        true,
-      ]
+      {
+        "dep1": 1,
+        "dep2": "2",
+        "depValue": true,
+      }
     `)
     expect(factory1).toHaveBeenCalledWith(container)
     expect(factory2).toHaveBeenCalledWith(container)
   })
 
   it("doesn't resolve not accessed members", () => {
-    const resolver = asResolvers([asFunction(factory1), asFunction(factory2)])
+    const resolver = asResolvers({
+      dep1: asFunction(factory1),
+      dep2: asFunction(factory2),
+    })
 
-    const dependencies = resolver.resolve(container) satisfies [number, string]
+    const dependencies = resolver.resolve(container) satisfies {
+      dep1: number
+      dep2: string
+    }
 
-    dependencies[1]
+    dependencies.dep2
 
     expect(factory1).not.toHaveBeenCalledWith(container)
+    expect(factory2).toHaveBeenCalledWith(container)
+  })
+
+  it('resolves nested resolvers', () => {
+    const resolver = asResolvers({
+      dep1: asResolvers({
+        dep2: asFunction(factory1),
+        dep3: asFunction(factory2),
+      }),
+    })
+
+    const dependencies = resolver.resolve(container) satisfies {
+      dep1: {
+        dep2: number
+        dep3: string
+      }
+    }
+
+    expect(dependencies).toMatchInlineSnapshot(`
+      {
+        "dep1": {
+          "dep2": 1,
+          "dep3": "2",
+        },
+      }
+    `)
+    expect(factory1).toHaveBeenCalledWith(container)
     expect(factory2).toHaveBeenCalledWith(container)
   })
 
@@ -50,14 +91,14 @@ describe(`${asResolvers.name}`, () => {
         await new Promise<void>((resolve) => resolve())
         expect(2).toBe(2) // this checks that the disposer is awaited
       })
-      const resolver = asResolvers([
-        asFunction(factory1, {
+      const resolver = asResolvers({
+        dep1: asFunction(factory1, {
           disposer: disposer1,
         }),
-        asFunction(factory2, {
+        dep2: asFunction(factory2, {
           disposer: disposer2,
         }),
-      ])
+      })
 
       resolver.resolve(container)
 
