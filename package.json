@@ -3,6 +3,10 @@
   "version": "0.7.0-rc.1",
   "description": "Opinionated dependency injection.",
   "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./helpers": "./lib/helpers/index.js"
+  },
   "files": [
     "lib/**/*"
   ],
