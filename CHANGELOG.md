@@ -1,3 +1,10 @@
+#### 0.7.0-rc.0 (2023-07-02)
+
+##### New Features
+
+*  asResolvers object (71d657c0)
+*  asResolvers - resolve on access (6a47d9c2)
+
 #### 0.7.0-rc.0 (2023-06-15)
 
 ##### New Features
