@@ -4,8 +4,17 @@
   "description": "Opinionated dependency injection.",
   "main": "lib/index.js",
   "exports": {
-    ".": "./lib/index.js",
-    "./helpers": "./lib/helpers/index.js"
+    "./package.json": "./package.json",
+    ".": {
+      "browser": "./lib/index.js",
+      "import": "./lib/index.js",
+      "require": "./dist/index.js"
+    },
+    "./helpers": {
+      "browser": "./lib/helpers/index.js",
+      "import": "./lib/helpers/index.js",
+      "require": "./dist/helpers/index.js"
+    }
   },
   "files": [
     "lib/**/*"

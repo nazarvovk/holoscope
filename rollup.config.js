@@ -1,5 +1,5 @@
 const typescript = require('@rollup/plugin-typescript')
-const { visualizer } = require("rollup-plugin-visualizer");
+const { visualizer } = require("rollup-plugin-visualizer")
 
 /**
  * @type {import('rollup').RollupOptions}
@@ -13,6 +13,7 @@ exports.default = {
     dir: 'lib',
     format: 'cjs',
     sourcemap: true,
+    preserveModules: true,
   },
   plugins: [
     typescript({
