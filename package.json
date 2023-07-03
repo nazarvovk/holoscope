@@ -2,18 +2,17 @@
   "name": "holoscope",
   "version": "0.7.0-rc.4",
   "description": "Opinionated dependency injection.",
-  "main": "lib/index.js",
   "exports": {
     "./package.json": "./package.json",
     ".": {
       "browser": "./lib/index.js",
       "import": "./lib/index.js",
-      "require": "./dist/index.js"
+      "require": "./lib/index.js"
     },
     "./helpers": {
       "browser": "./lib/helpers/index.js",
       "import": "./lib/helpers/index.js",
-      "require": "./dist/helpers/index.js"
+      "require": "./lib/helpers/index.js"
     }
   },
   "files": [
