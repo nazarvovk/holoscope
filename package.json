@@ -1,6 +1,6 @@
 {
   "name": "holoscope",
-  "version": "0.7.0-rc.4",
+  "version": "0.7.0-rc.5",
   "description": "Opinionated dependency injection.",
   "exports": {
     "./package.json": "./package.json",
