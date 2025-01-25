@@ -50,33 +50,79 @@ describe(`${asFunction.name}`, () => {
   })
 
   describe('disposer', () => {
-    it('calls disposer', async () => {
-      const fnMock = jest.fn().mockReturnValueOnce({ test: 1 })
-      const disposerMock = jest.fn()
+    describe('cached', () => {
+      it('calls disposer with cached value if it was accessed before', async () => {
+        const fnMock = jest.fn().mockReturnValue({ test: 1 })
+        const disposerMock = jest.fn()
 
-      const disposerScope = new Scope({
-        test: asFunction(fnMock, { cached: true, disposer: disposerMock }),
+        const disposerScope = new Scope({
+          test: asFunction(fnMock, { cached: true, disposer: disposerMock }),
+        })
+
+        disposerScope.container.test
+
+        await disposerScope.dispose()
+
+        expect(disposerMock).toHaveBeenCalledTimes(1)
+        expect(disposerMock.mock.calls[0][0]).toStrictEqual({ test: 1 })
       })
 
-      disposerScope.container.test
+      it('clears cache and runs factory on access after dispose', async () => {
+        const factoryMock = jest.fn().mockReturnValue({ test: 1 })
+        const disposerMock = jest.fn()
 
-      await disposerScope.dispose()
+        const disposerScope = new Scope({
+          test: asFunction(factoryMock, { cached: true, disposer: disposerMock }),
+        })
 
-      expect(disposerMock).toHaveBeenCalledTimes(1)
-      expect(disposerMock.mock.calls[0][0]).toStrictEqual({ test: 1 })
-    })
+        // Access once and dispose
+        disposerScope.container.test
+        await disposerScope.dispose()
 
-    it('does not call disposer if value was not resolved', async () => {
-      const fnMock = jest.fn()
-      const disposerMock = jest.fn()
+        // Access again
+        disposerScope.container.test
+        disposerScope.container.test // <- should not call factory again, use cache
 
-      const disposerScope = new Scope({
-        test: asFunction(fnMock, { cached: true, disposer: disposerMock }),
+        expect(disposerMock).toHaveBeenCalledTimes(1)
+        expect(factoryMock).toHaveBeenCalledTimes(2)
       })
 
-      await disposerScope.dispose()
+      it('clears cache if disposer throws error', async () => {
+        const factoryMock = jest.fn().mockReturnValue({ test: 1 })
+        const disposerMock = jest.fn().mockRejectedValue(new Error('disposer error'))
 
-      expect(disposerMock).not.toHaveBeenCalled()
+        const disposerScope = new Scope({
+          test: asFunction(factoryMock, {
+            cached: true,
+            disposer: disposerMock,
+          }),
+        })
+
+        // Access once and dispose
+        disposerScope.container.test
+
+        await expect(() => disposerScope.dispose()).rejects.toThrow()
+
+        // Access again
+        disposerScope.container.test
+        disposerScope.container.test
+
+        expect(disposerMock).toHaveBeenCalledTimes(1)
+        expect(factoryMock).toHaveBeenCalledTimes(2)
+      })
+
+      it('does not call disposer if value was not accessed before', async () => {
+        const fnMock = jest.fn()
+        const disposerMock = jest.fn()
+
+        const disposerScope = new Scope({
+          test: asFunction(fnMock, { cached: true, disposer: disposerMock }),
+        })
+
+        await disposerScope.dispose()
+
+        expect(disposerMock).not.toHaveBeenCalled()
+      })
     })
 
     it('calls disposer with an uncached value', async () => {

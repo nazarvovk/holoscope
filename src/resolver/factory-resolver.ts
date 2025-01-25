@@ -25,23 +25,27 @@ export type FactoryResolverOptions<TValue> = {
    * If disposer returns a Promise, it is awaited.
    */
   disposer?: (value: TValue, container: Container) => void | Promise<void>
+} & {
+  invalidateCacheOnDisposerError?: boolean
 }
+
+export const UNSET_CACHE = Symbol('UNSET_CACHE')
 
 export class FactoryResolver<TValue> implements Resolver<TValue> {
   readonly [IS_RESOLVER] = true
 
-  private cache: TValue | null = null
+  protected cache: TValue | typeof UNSET_CACHE = UNSET_CACHE
 
-  private injectedResolvers: Record<keyof any, Resolver<unknown>> = {}
+  protected injectedResolvers: Record<keyof any, Resolver<unknown>> = {}
 
   constructor(
-    private factory: Factory<TValue>,
-    private options: FactoryResolverOptions<TValue> = {},
+    protected factory: Factory<TValue>,
+    protected options: FactoryResolverOptions<TValue> = {},
   ) {
     inject(this.injectedResolvers, options.inject ?? {})
   }
 
-  private getInjectionProxyContainer(container: Container) {
+  protected getInjectionProxyContainer(container: Container) {
     return new Proxy(container, {
       get: (originalContainer, dependencyName: keyof Container, proxy) => {
         if (dependencyName in this.injectedResolvers) {
@@ -56,13 +60,13 @@ export class FactoryResolver<TValue> implements Resolver<TValue> {
    * Get the value of the dependency given the container.
    * Handles per-resolver inject.
    */
-  private getValue(container: Container): TValue {
+  protected getValue(container: Container): TValue {
     const dependencyProxy = this.getInjectionProxyContainer(container) as ContainerOf<TValue>
     return this.factory(dependencyProxy)
   }
 
   public resolve(container: Container): TValue {
-    if (this.options.cached && this.cache) {
+    if (this.options.cached && this.cache !== UNSET_CACHE) {
       return this.cache
     }
 
@@ -76,23 +80,25 @@ export class FactoryResolver<TValue> implements Resolver<TValue> {
   }
 
   public async dispose(container: Container): Promise<void> {
-    const { disposer, cached } = this.options
+    try {
+      const { disposer, cached } = this.options
 
-    await Promise.all(
-      Object.values(this.injectedResolvers).map((resolver) => resolver.dispose?.(container)),
-    )
+      await Promise.all(
+        Object.values(this.injectedResolvers).map((resolver) => resolver.dispose?.(container)),
+      )
 
-    if (disposer) {
-      if (cached) {
-        if (this.cache) {
-          await disposer(this.cache, container)
+      if (disposer) {
+        if (cached) {
+          if (this.cache !== UNSET_CACHE) {
+            await disposer(this.cache, container)
+          }
+        } else {
+          const value = this.getValue(container)
+          await disposer(value, container)
         }
-      } else {
-        const value = this.getValue(container)
-        await disposer(value, container)
       }
+    } finally {
+      this.cache = UNSET_CACHE
     }
-
-    this.cache = null
   }
 }
