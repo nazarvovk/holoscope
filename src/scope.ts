@@ -20,7 +20,6 @@ export class Scope<TContainer extends Container = Container> {
    */
   public container = new Proxy(this.registrations, {
     get: (registrations, dependencyName) => {
-      if (dependencyName === '$$typeof') return Symbol.for('holoscope.container')
       if (dependencyName in registrations) {
         return registrations[dependencyName as keyof TContainer].resolve(
           this.resolutionContainerProxy,

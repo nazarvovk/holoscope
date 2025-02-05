@@ -31,10 +31,6 @@ describe(`${Scope.name}`, () => {
     expect(scope.container.test).toStrictEqual(TEST_VALUE)
   })
 
-  it("doesn't throw when $$typeof is accessed on container", () => {
-    expect(scope.container.$$typeof).toMatchInlineSnapshot(`Symbol(holoscope.container)`)
-  })
-
   it('scope calls all disposers', async () => {
     const disposer1 = jest.fn()
     const disposer2 = jest.fn()
