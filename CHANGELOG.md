@@ -1,3 +1,16 @@
+#### 0.9.0 (2025-02-15)
+
+##### Chores
+
+*  add readme (4ba2e9db)
+*  eslint upgrade to v9 & swap to tsup (2e4822e3)
+*  upgrade packages (b1fa1eaa)
+*  run test workflow on push to main (#7) (5d717249)
+
+##### New Features
+
+*  remove the stupid $$typeof workaround (cf66bab2)
+
 #### 0.7.0-rc.0 (2023-07-02)
 
 ##### New Features
