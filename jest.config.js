@@ -1,16 +1,15 @@
-const { defaults: tsjPreset } = require('ts-jest/presets');
-
 module.exports = {
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
       {
         tsconfig: './tsconfig.test.json',
-        isolatedModules: true, // Disable type checking for tests
+        // Disable type checking for tests
+        isolatedModules: true,
       },
     ],
   },
   testEnvironment: 'node',
   testPathIgnorePatterns: ['<rootDir>/node_modules/'],
   roots: ['<rootDir>/src'],
-};
+}

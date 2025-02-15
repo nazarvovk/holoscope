@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "./lib",
+    "outDir": "./dist",
     "strict": true,
     "strictNullChecks": true,
     "experimentalDecorators": true,
@@ -21,10 +21,10 @@
     ]
   },
   "include": [
-    "src/**/*",
+    "src",
   ],
   "exclude": [
     "node_modules",
-    "lib"
+    "dist"
   ]
 }

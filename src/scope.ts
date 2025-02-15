@@ -9,7 +9,7 @@ import { inject } from './inject'
  */
 export class Scope<TContainer extends Container = Container> {
   public registrations = {} as Registration<TContainer>
-  private protectedRegistrations = {} as Injection<any>
+  private protectedRegistrations = {} as Registration<Record<keyof any, unknown>>
 
   constructor(registrations: Injection<TContainer>) {
     this.register(registrations)
@@ -36,7 +36,7 @@ export class Scope<TContainer extends Container = Container> {
   private resolutionContainerProxy = new Proxy(this.container, {
     get: (registrations, dependencyName, proxy) => {
       if (dependencyName in this.protectedRegistrations) {
-        return this.protectedRegistrations[dependencyName as keyof TContainer].resolve(proxy)
+        return this.protectedRegistrations[dependencyName].resolve(proxy)
       }
       return this.container[dependencyName as keyof TContainer]
     },
@@ -56,10 +56,12 @@ export class Scope<TContainer extends Container = Container> {
    * Call all of the resolver disposers.
    */
   async dispose(): Promise<void> {
+    const allRegistrations = [
+      ...Object.values<Resolver<unknown>>(this.registrations),
+      ...Object.values<Resolver<unknown>>(this.protectedRegistrations),
+    ]
     await Promise.all(
-      [...Object.values(this.registrations), ...Object.values(this.protectedRegistrations)].map(
-        (resolver: Resolver<unknown>) => resolver.dispose?.(this.resolutionContainerProxy),
-      ),
+      allRegistrations.map((resolver) => resolver.dispose?.(this.resolutionContainerProxy)),
     )
   }
 }
